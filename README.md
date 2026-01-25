@@ -19,6 +19,9 @@ To build the firmware:
 cmake --build --preset Debug
 ```
 
+To debug the firmware, first build it with the Debug preset, then install the probe-rs vscode
+extension. You can now start a DAP debug session with probe-rs in the vscode debugging tab.
+
 Flash the firmware with probe-rs:
 
 ```sh
