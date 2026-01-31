@@ -57,19 +57,3 @@ IR remote, so we will ignore this.
 - Followed by 8 bit command, and inverted 8 bit command.
 
 We only track the time between the falling edges, for simplicity. 
-
-TODO
-- Create a struct to represent the 32 bit signal. Union of 32 bit integer or struct of 4 invidual 8
-bit values.
-- When we receive a pulse, stop the timer, increment a variable that holds the pulse count. We will
-receive 3 pulses before we start receiving the bits, and the last pulse will be 34. Any pulse
-inbetween will represent the bits of a message. After we have decoded the pulse and added the result
-to the message ring buffer, restart the timer.
-- b1 will 2.25ms, b0 will be 1.5ms. We will count any time greater than 2ms as b1, and the shorter
-as b0.
-- Add message to ring buffer.
-- If we keep the button pressed, it will keep sending the same message at a repeating interval.
-
-Youtube:
-https://www.youtube.com/watch?v=rh4pdNWKLJY
-https://www.youtube.com/watch?v=K7eHkij-wNY
