@@ -64,7 +64,7 @@ static void MX_USART2_UART_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 // FIXME convert to circular buffer, move to NEC module, access via API.
-static nec_message nec_buffer[1] = {0};
+static necx_decoded nec_buffer[1] = {0};
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
@@ -122,10 +122,11 @@ int main(void)
   {
     /* USER CODE END WHILE */
     /* USER CODE BEGIN 3 */
-    nec_message msg = nec_buffer[0];
-    printf("msg: %" PRIu32 ", cmd: 0x%02x, c_inverted: 0x%02x, addr: 0x%02x, a_inverted: 0x%02x\n", msg.raw, msg.decoded.cmd, msg.decoded.cmd_inverted, msg.decoded.addr, msg.decoded.addr_inverted);
+    // TODO: use a circular buffer instead.
+    necx_decoded msg = nec_buffer[0];
+    printf("cmd: 0x%02x, c_inverted: 0x%02x, addr: 0x%02x\n", msg.cmd, msg.cmd_inverted, msg.addr);
 
-    if (msg.decoded.cmd == 0x11)
+    if (msg.cmd == 0x11)
     {
       HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_SET);
     }

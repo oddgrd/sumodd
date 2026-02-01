@@ -46,14 +46,15 @@ st-flash --reset write  build/Debug/sumo.bin 0x08000000
 
 ### NEC
 
-TIM16 1Mhz input capture channel, used to time the pulses of the IR receiver, triggered on falling
-edges.
+Uses TIM16 as a 1Mhz input capture channel, used to time the pulses of the IR receiver, triggered
+on falling edges only, for simplicity.
 
-With an NEC protocol receiver, we will receive 32 bits for each keypress.
+With an NEC protocol[^1] receiver, we will receive 32 bits for each keypress.
 
 - 9ms down and 4.5ms up represents start of transmission.
-- Followed by 8 bit address, and then inverse of 8 bit address. This is going to be the same for our
-IR remote, so we will ignore this.
+- Next, we will receive 32 pulses representing bits, ~1.1ms for b0 and ~2.2ms for b1.
+- The first 16 bits are the address of the remote device. Note that our remote is an NECx remote,
+in normal NEC the first 16 bits are address and address inverted.
 - Followed by 8 bit command, and inverted 8 bit command.
 
-We only track the time between the falling edges, for simplicity. 
+[^1]: https://www.infineon.com/assets/row/public/documents/60/42/infineon-an2023-03-infrared-remote-control-and-saving-last-speed-setting-applicationnotes-en.pdf?fileId=8ac78c8c8d1b852e018d21ff0aa71feb
