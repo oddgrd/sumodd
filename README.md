@@ -3,6 +3,7 @@
 ### Hardware
 
 - STM32F303K8T6 MCU with 72MHz CPU, 64 KB flash and 12 KB SRAM. 
+    - Data sheet: https://www.st.com/resource/en/datasheet/stm32f303c6.pdf
 - Sensors:
     - VL53LOX time-of-flight sensors for detecting enemies.
     - QRE1113 line sensors for detecting the arena edge.

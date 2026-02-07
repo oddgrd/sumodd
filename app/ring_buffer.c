@@ -20,6 +20,8 @@ bool ring_buffer_push(ring_buffer *rb, uint8_t data)
         return false;
     }
     rb->data[rb->head] = data;
+    // TODO: STM32F303K8T6 should have a HW divider according to the data sheet, but we should
+    // verify that is the case and that this modulo operation is cheap.
     rb->head = (rb->head + 1) % rb->capacity;
     rb->count++;
 
@@ -33,6 +35,8 @@ bool ring_buffer_pop(ring_buffer *rb, uint8_t *out)
         return false;
     }
     *out = rb->data[rb->tail];
+    // TODO: STM32F303K8T6 should have a HW divider according to the data sheet, but we should
+    // verify that is the case and that this modulo operation is cheap.
     rb->tail = (rb->tail + 1) % rb->capacity;
     rb->count--;
 

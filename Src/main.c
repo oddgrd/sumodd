@@ -336,10 +336,14 @@ static void MX_TIM1_Init(void)
   /* USER CODE BEGIN TIM1_Init 1 */
 
   /* USER CODE END TIM1_Init 1 */
+  // With prescaler set to 32 (-1 because stm32 TIM prescalers are zero-based), and a source clock
+  // of 32MHz, this timer will have a frequency of 1MHz, which means each tick is 1us. With the
+  // period set to 20k, the timer will reload and trigger an update event every 20ms. That update
+  // event will trigger a conversion in the line sensor ADC.
   htim1.Instance = TIM1;
   htim1.Init.Prescaler = 32 - 1;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 20000;
+  htim1.Init.Period = 20000 - 1;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;

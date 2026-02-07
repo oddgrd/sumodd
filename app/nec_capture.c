@@ -48,8 +48,11 @@ static nec_status_t parse_necx(const uint32_t raw, necx_decoded *out)
 {
     necx_decoded decoded = {0};
 
-    // Shift right by n, and mask the remaining bits.
-    decoded.addr = reverse_bits((raw >> 16) & 0xFFFF);
+    // Address is received in as two bytes, LSB first, with bits reversed.
+    uint8_t addr_lsb = reverse_bits((raw >> 24) & 0xFF);
+    uint8_t addr_msb = reverse_bits((raw >> 16) & 0xFF);
+    decoded.addr = ((uint16_t)addr_msb << 8) | addr_lsb;
+    // Shift right by n, mask the remaining bits, and reverse the bits.
     decoded.cmd = reverse_bits((raw >> 8) & 0xFF);
     decoded.cmd_inverted = reverse_bits(raw & 0xFF);
 

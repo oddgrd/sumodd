@@ -4,6 +4,9 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+// TODO: refactor implementation so we can use the ring buffer for various data types, not just
+// bytes.
+
 /**
  * @brief A circular buffer of bytes that disallows writes when full.
  */
