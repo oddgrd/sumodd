@@ -9,6 +9,8 @@
     - QRE1113 line sensors for detecting the arena edge.
     - TSOP38238 infrared receiver for activating the robot remotely.
 - TB6612FNG motor drivers to control the motors.
+    - https://cdn.sparkfun.com/assets/0/1/b/b/3/TB6612FNG.pdf
+    - https://learn.sparkfun.com/tutorials/tb6612fng-hookup-guide/all
 - MPM3610 buck regulator for regulating the voltage to the MCU.
 
 ### Development
@@ -87,3 +89,54 @@ Currently, it is only configured to work with one line-sensor, but it should be 
 an ADC watchdog watch all 4 line sensors, and hopefully also to distinguish them, so we can know
 which sensor, and thus corner of the bot, has crossed the line.
 
+## Motor driver
+
+We cannot power the motor directly from the MCU, as it needs 3-6V, and will draw upwards of 60mA
+at full speed. The STM32F303K8T6 is rated for at most 25mA from any output pin, and 80mA total
+across all pins. Therefore, we will use a MOSFET based H-bridge motor driver, the TB6612FNG.
+
+- It takes power directly from a power source (VM), up to 6V, and uses PWM to control the output
+voltage to the motors. Thus the MCU is only indirectly involved in powering the motors.
+- The motor driver does not have a clock, the MCU provides the PWM signal using a timer peripheral,
+and supplies it to a motor driver input pin. It has two PWM input pins, one for each motor.
+- Each motor driver can support up to two motors.
+- For each motor, the driver has two additional input pins, used to control the direction of the
+motor. These open and close transistors in the H-bridge, which reverses the polarity of the voltage.
+- The H-bridge allows it to reverse polarities, thus reversing direction of the brushed DC motors.
+
+#### Motor PWM
+
+It is important that the frequency of the PWM signal is high enough that we avoid current ripples,
+which happens when the switching period is slow enough that the motor does not see the average
+voltage we want it to see, rather it will see constantly fluctuating voltage, which means the
+motor will not spin smoothly.
+
+To generate the PWM, we use a timer peripheral, TIM2 on the MCU. TIM2 is on the APB1 (advanced
+peripheral bus 1) bus. The system clock is set to 32MHz, and the APB1 prescaler is set to 1,
+so the TIM2 clock is also 32MHz. Furthermore:
+
+- TIM2 is set to count up.
+- The TIM2 prescaler (PSC) is set to 0, and the period is set to 1600. The timer will continously
+count up to this period value at the clock frequency, then reset. 
+
+We can calculate the PWM frequency from these values.
+
+f_PWM = f_TIM / ((PSC + 1)(ARR + 1))
+f_PWM = 32MHz / (1 * 1600)
+f_PWM = 20KHz
+One period is 50us.
+
+We can control the duty cycle, how long each pulse is HIGH, from our application, by setting the
+capture and compare register (CCR) for the timer channel we are using to generate the PWM signal.
+When the counter is < than the CCR value, the channel output will be HIGH. When it is greater
+than or equal to the CCR value, channel output will be low.
+
+For example, if we set the CCR register to 800:
+
+- When the counter is between 0 and 799, the output will be HIGH.
+- When the counter is between 799 and 1599, the output will be LOW.
+
+This leaves the PWM duty cycle at 50%, as it is HIGH 50% of the period. The motor driver will use
+this signal to switch the voltage it supplies to the motor (from VM) on and off at f_PWM, which
+will provide an average voltage to the motor. If the input from VM is 6V, at 800 CCR the motors
+will see 3V.

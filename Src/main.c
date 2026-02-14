@@ -49,6 +49,7 @@
 ADC_HandleTypeDef hadc1;
 
 TIM_HandleTypeDef htim1;
+TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim16;
 
 UART_HandleTypeDef huart2;
@@ -64,6 +65,7 @@ static void MX_TIM16_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM1_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
 /* USER CODE END PFP */
@@ -136,6 +138,7 @@ int main(void)
   MX_USART2_UART_Init();
   MX_ADC1_Init();
   MX_TIM1_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
   // Ensure ring buffer is initialized before NEC ISR needs it.
@@ -160,6 +163,17 @@ int main(void)
     Error_Handler();
   }
 
+  if (HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_0, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_1, GPIO_PIN_RESET);
+
+  // set motor stby high
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);
+
   printf("****Starting Sumo Bot****\n");
   printf("****Awaiting command to exit standby mode****\n");
   while (1)
@@ -180,10 +194,22 @@ int main(void)
       {
         HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_SET);
       }
+      else if (msg == 0x10)
+      {
+        state = STANDBY;
+      }
       else
       {
         HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET);
       }
+    }
+    if (state == RETREAT)
+    {
+      __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 800);
+    }
+    else if (state == STANDBY)
+    {
+      __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 0);
     }
 
     HAL_Delay(500);
@@ -287,8 +313,6 @@ static void MX_ADC1_Init(void)
 
   /** Configure Analog WatchDog 1
    */
-  // TODO: reconfigure to watch all qre1113 channels, either with watchdog 1 set to watch all channels,
-  // or watchdog 2 or 3 set to the specific qre1113 channels.
   AnalogWDGConfig.WatchdogNumber = ADC_ANALOGWATCHDOG_1;
   AnalogWDGConfig.WatchdogMode = ADC_ANALOGWATCHDOG_SINGLE_REG;
   AnalogWDGConfig.HighThreshold = 1023;
@@ -334,12 +358,11 @@ static void MX_TIM1_Init(void)
   TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
 
   /* USER CODE BEGIN TIM1_Init 1 */
-
-  /* USER CODE END TIM1_Init 1 */
   // With prescaler set to 32 (-1 because stm32 TIM prescalers are zero-based), and a source clock
   // of 32MHz, this timer will have a frequency of 1MHz, which means each tick is 1us. With the
   // period set to 20k, the timer will reload and trigger an update event every 20ms. That update
   // event will trigger a conversion in the line sensor ADC.
+  /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
   htim1.Init.Prescaler = 32 - 1;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
@@ -387,6 +410,54 @@ static void MX_TIM1_Init(void)
   /* USER CODE BEGIN TIM1_Init 2 */
 
   /* USER CODE END TIM1_Init 2 */
+}
+
+/**
+ * @brief TIM2 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 0;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 1600 - 1;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 800;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
+  HAL_TIM_MspPostInit(&htim2);
 }
 
 /**
@@ -481,14 +552,25 @@ static void MX_GPIO_Init(void)
   /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOF_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_0 | GPIO_PIN_1, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : PB3 */
-  GPIO_InitStruct.Pin = GPIO_PIN_3;
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1 | GPIO_PIN_3, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : PF0 PF1 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PB1 PB3 */
+  GPIO_InitStruct.Pin = GPIO_PIN_1 | GPIO_PIN_3;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
