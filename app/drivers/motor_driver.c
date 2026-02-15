@@ -40,7 +40,11 @@ static void MX_TIM2_Init(void)
     sConfigOC.Pulse = 0; // Initial CCR value.
     sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
     sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-    if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+    if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
     {
         Error_Handler();
     }
@@ -73,19 +77,19 @@ void motor_driver_set_speed(MotorSpeed speed)
     switch (speed)
     {
     case OFF:
-        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 0);
+        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, 0);
         break;
     case TURTLE:
-        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 400);
+        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, 400);
         break;
     case HUMAN:
-        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 800);
+        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, 800);
         break;
     case HARE:
-        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 1200);
+        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, 1200);
         break;
     case JAGUAR:
-        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 1599);
+        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, 1599);
         break;
     }
     // TODO: default for bad input
@@ -96,7 +100,7 @@ void motor_driver_start(void)
     motor_driver_set_direction(FORWARD);
     motor_driver_set_speed(STOP);
 
-    if (HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1) != HAL_OK)
+    if (HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3) != HAL_OK)
     {
         Error_Handler();
     }

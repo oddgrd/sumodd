@@ -2,45 +2,36 @@
 #include "line_sensor.h"
 #include "state.h"
 
-ADC_HandleTypeDef hadc1;
+ADC_HandleTypeDef hadc2;
 TIM_HandleTypeDef htim1;
 
 /**
- * @brief ADC1 Initialization Function
+ * @brief ADC2 Initialization Function
  * @param None
  * @retval None
  */
-static void MX_ADC1_Init(void)
+static void MX_ADC2_Init(void)
 {
-    ADC_MultiModeTypeDef multimode = {0};
     ADC_AnalogWDGConfTypeDef AnalogWDGConfig = {0};
     ADC_ChannelConfTypeDef sConfig = {0};
 
     /** Common config
      */
-    hadc1.Instance = ADC1;
-    hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
-    hadc1.Init.Resolution = ADC_RESOLUTION_10B;
-    hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
-    hadc1.Init.ContinuousConvMode = DISABLE;
-    hadc1.Init.DiscontinuousConvMode = DISABLE;
-    hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
-    hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_TRGO;
-    hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-    hadc1.Init.NbrOfConversion = 1;
-    hadc1.Init.DMAContinuousRequests = DISABLE;
-    hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
-    hadc1.Init.LowPowerAutoWait = DISABLE;
-    hadc1.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN;
-    if (HAL_ADC_Init(&hadc1) != HAL_OK)
-    {
-        Error_Handler();
-    }
-
-    /** Configure the ADC multi-mode
-     */
-    multimode.Mode = ADC_MODE_INDEPENDENT;
-    if (HAL_ADCEx_MultiModeConfigChannel(&hadc1, &multimode) != HAL_OK)
+    hadc2.Instance = ADC2;
+    hadc2.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
+    hadc2.Init.Resolution = ADC_RESOLUTION_10B;
+    hadc2.Init.ScanConvMode = ADC_SCAN_DISABLE;
+    hadc2.Init.ContinuousConvMode = DISABLE;
+    hadc2.Init.DiscontinuousConvMode = DISABLE;
+    hadc2.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
+    hadc2.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_TRGO;
+    hadc2.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+    hadc2.Init.NbrOfConversion = 1;
+    hadc2.Init.DMAContinuousRequests = DISABLE;
+    hadc2.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+    hadc2.Init.LowPowerAutoWait = DISABLE;
+    hadc2.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN;
+    if (HAL_ADC_Init(&hadc2) != HAL_OK)
     {
         Error_Handler();
     }
@@ -53,7 +44,7 @@ static void MX_ADC1_Init(void)
     AnalogWDGConfig.LowThreshold = 700;
     AnalogWDGConfig.Channel = ADC_CHANNEL_1;
     AnalogWDGConfig.ITMode = ENABLE;
-    if (HAL_ADC_AnalogWDGConfig(&hadc1, &AnalogWDGConfig) != HAL_OK)
+    if (HAL_ADC_AnalogWDGConfig(&hadc2, &AnalogWDGConfig) != HAL_OK)
     {
         Error_Handler();
     }
@@ -66,7 +57,7 @@ static void MX_ADC1_Init(void)
     sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
     sConfig.OffsetNumber = ADC_OFFSET_NONE;
     sConfig.Offset = 0;
-    if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+    if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
     {
         Error_Handler();
     }
@@ -135,7 +126,7 @@ static void MX_TIM1_Init(void)
 
 void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef *hadc)
 {
-    if (hadc->Instance == ADC1)
+    if (hadc->Instance == ADC2)
     {
         sumo_bot_state = RETREAT;
         // TODO: disable isr until the bot leaves the RETREAT state? ADC conversions are only triggered
@@ -147,9 +138,9 @@ void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef *hadc)
 void line_sensor_init(void)
 {
     MX_TIM1_Init();
-    MX_ADC1_Init();
+    MX_ADC2_Init();
 
-    if (HAL_ADC_Start(&hadc1) != HAL_OK)
+    if (HAL_ADC_Start(&hadc2) != HAL_OK)
     {
         Error_Handler();
     };

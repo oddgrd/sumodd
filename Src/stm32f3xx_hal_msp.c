@@ -88,29 +88,32 @@ void HAL_MspInit(void)
 void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-  if(hadc->Instance==ADC1)
+  if(hadc->Instance==ADC2)
   {
-    /* USER CODE BEGIN ADC1_MspInit 0 */
+    /* USER CODE BEGIN ADC2_MspInit 0 */
 
-    /* USER CODE END ADC1_MspInit 0 */
+    /* USER CODE END ADC2_MspInit 0 */
     /* Peripheral clock enable */
     __HAL_RCC_ADC12_CLK_ENABLE();
 
     __HAL_RCC_GPIOA_CLK_ENABLE();
-    /**ADC1 GPIO Configuration
-    PA0     ------> ADC1_IN1
+    /**ADC2 GPIO Configuration
+    PA4     ------> ADC2_IN1
+    PA5     ------> ADC2_IN2
+    PA6     ------> ADC2_IN3
+    PA7     ------> ADC2_IN4
     */
-    GPIO_InitStruct.Pin = GPIO_PIN_0;
+    GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-    /* ADC1 interrupt Init */
+    /* ADC2 interrupt Init */
     HAL_NVIC_SetPriority(ADC1_2_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(ADC1_2_IRQn);
-    /* USER CODE BEGIN ADC1_MspInit 1 */
+    /* USER CODE BEGIN ADC2_MspInit 1 */
 
-    /* USER CODE END ADC1_MspInit 1 */
+    /* USER CODE END ADC2_MspInit 1 */
 
   }
 
@@ -124,24 +127,27 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
   */
 void HAL_ADC_MspDeInit(ADC_HandleTypeDef* hadc)
 {
-  if(hadc->Instance==ADC1)
+  if(hadc->Instance==ADC2)
   {
-    /* USER CODE BEGIN ADC1_MspDeInit 0 */
+    /* USER CODE BEGIN ADC2_MspDeInit 0 */
 
-    /* USER CODE END ADC1_MspDeInit 0 */
+    /* USER CODE END ADC2_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_ADC12_CLK_DISABLE();
 
-    /**ADC1 GPIO Configuration
-    PA0     ------> ADC1_IN1
+    /**ADC2 GPIO Configuration
+    PA4     ------> ADC2_IN1
+    PA5     ------> ADC2_IN2
+    PA6     ------> ADC2_IN3
+    PA7     ------> ADC2_IN4
     */
-    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_0);
+    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7);
 
-    /* ADC1 interrupt DeInit */
+    /* ADC2 interrupt DeInit */
     HAL_NVIC_DisableIRQ(ADC1_2_IRQn);
-    /* USER CODE BEGIN ADC1_MspDeInit 1 */
+    /* USER CODE BEGIN ADC2_MspDeInit 1 */
 
-    /* USER CODE END ADC1_MspDeInit 1 */
+    /* USER CODE END ADC2_MspDeInit 1 */
   }
 
 }
@@ -164,6 +170,8 @@ void HAL_TIM_PWM_MspInit(TIM_HandleTypeDef* htim_pwm)
     /* TIM1 interrupt Init */
     HAL_NVIC_SetPriority(TIM1_UP_TIM16_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(TIM1_UP_TIM16_IRQn);
+    HAL_NVIC_SetPriority(TIM1_TRG_COM_TIM17_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(TIM1_TRG_COM_TIM17_IRQn);
     /* USER CODE BEGIN TIM1_MspInit 1 */
 
     /* USER CODE END TIM1_MspInit 1 */
@@ -191,31 +199,31 @@ void HAL_TIM_PWM_MspInit(TIM_HandleTypeDef* htim_pwm)
 void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-  if(htim_base->Instance==TIM16)
+  if(htim_base->Instance==TIM17)
   {
-    /* USER CODE BEGIN TIM16_MspInit 0 */
+    /* USER CODE BEGIN TIM17_MspInit 0 */
 
-    /* USER CODE END TIM16_MspInit 0 */
+    /* USER CODE END TIM17_MspInit 0 */
     /* Peripheral clock enable */
-    __HAL_RCC_TIM16_CLK_ENABLE();
+    __HAL_RCC_TIM17_CLK_ENABLE();
 
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    /**TIM16 GPIO Configuration
-    PA6     ------> TIM16_CH1
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+    /**TIM17 GPIO Configuration
+    PB5     ------> TIM17_CH1
     */
-    GPIO_InitStruct.Pin = GPIO_PIN_6;
+    GPIO_InitStruct.Pin = GPIO_PIN_5;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    GPIO_InitStruct.Alternate = GPIO_AF1_TIM16;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    GPIO_InitStruct.Alternate = GPIO_AF10_TIM17;
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-    /* TIM16 interrupt Init */
-    HAL_NVIC_SetPriority(TIM1_UP_TIM16_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(TIM1_UP_TIM16_IRQn);
-    /* USER CODE BEGIN TIM16_MspInit 1 */
+    /* TIM17 interrupt Init */
+    HAL_NVIC_SetPriority(TIM1_TRG_COM_TIM17_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(TIM1_TRG_COM_TIM17_IRQn);
+    /* USER CODE BEGIN TIM17_MspInit 1 */
 
-    /* USER CODE END TIM16_MspInit 1 */
+    /* USER CODE END TIM17_MspInit 1 */
 
   }
 
@@ -232,13 +240,14 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef* htim)
 
     __HAL_RCC_GPIOA_CLK_ENABLE();
     /**TIM2 GPIO Configuration
-    PA5     ------> TIM2_CH1
+    PA9     ------> TIM2_CH3
+    PA10     ------> TIM2_CH4
     */
-    GPIO_InitStruct.Pin = GPIO_PIN_5;
+    GPIO_InitStruct.Pin = GPIO_PIN_9|GPIO_PIN_10;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    GPIO_InitStruct.Alternate = GPIO_AF1_TIM2;
+    GPIO_InitStruct.Alternate = GPIO_AF10_TIM2;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
     /* USER CODE BEGIN TIM2_MspPostInit 1 */
@@ -264,13 +273,14 @@ void HAL_TIM_PWM_MspDeInit(TIM_HandleTypeDef* htim_pwm)
     __HAL_RCC_TIM1_CLK_DISABLE();
 
     /* TIM1 interrupt DeInit */
-    /* USER CODE BEGIN TIM1:TIM1_UP_TIM16_IRQn disable */
+    HAL_NVIC_DisableIRQ(TIM1_UP_TIM16_IRQn);
+    /* USER CODE BEGIN TIM1:TIM1_TRG_COM_TIM17_IRQn disable */
     /**
-    * Uncomment the line below to disable the "TIM1_UP_TIM16_IRQn" interrupt
+    * Uncomment the line below to disable the "TIM1_TRG_COM_TIM17_IRQn" interrupt
     * Be aware, disabling shared interrupt may affect other IPs
     */
-    /* HAL_NVIC_DisableIRQ(TIM1_UP_TIM16_IRQn); */
-    /* USER CODE END TIM1:TIM1_UP_TIM16_IRQn disable */
+    /* HAL_NVIC_DisableIRQ(TIM1_TRG_COM_TIM17_IRQn); */
+    /* USER CODE END TIM1:TIM1_TRG_COM_TIM17_IRQn disable */
 
     /* USER CODE BEGIN TIM1_MspDeInit 1 */
 
@@ -298,31 +308,31 @@ void HAL_TIM_PWM_MspDeInit(TIM_HandleTypeDef* htim_pwm)
   */
 void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* htim_base)
 {
-  if(htim_base->Instance==TIM16)
+  if(htim_base->Instance==TIM17)
   {
-    /* USER CODE BEGIN TIM16_MspDeInit 0 */
+    /* USER CODE BEGIN TIM17_MspDeInit 0 */
 
-    /* USER CODE END TIM16_MspDeInit 0 */
+    /* USER CODE END TIM17_MspDeInit 0 */
     /* Peripheral clock disable */
-    __HAL_RCC_TIM16_CLK_DISABLE();
+    __HAL_RCC_TIM17_CLK_DISABLE();
 
-    /**TIM16 GPIO Configuration
-    PA6     ------> TIM16_CH1
+    /**TIM17 GPIO Configuration
+    PB5     ------> TIM17_CH1
     */
-    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_6);
+    HAL_GPIO_DeInit(GPIOB, GPIO_PIN_5);
 
-    /* TIM16 interrupt DeInit */
-    /* USER CODE BEGIN TIM16:TIM1_UP_TIM16_IRQn disable */
+    /* TIM17 interrupt DeInit */
+    /* USER CODE BEGIN TIM17:TIM1_TRG_COM_TIM17_IRQn disable */
     /**
-    * Uncomment the line below to disable the "TIM1_UP_TIM16_IRQn" interrupt
+    * Uncomment the line below to disable the "TIM1_TRG_COM_TIM17_IRQn" interrupt
     * Be aware, disabling shared interrupt may affect other IPs
     */
-    /* HAL_NVIC_DisableIRQ(TIM1_UP_TIM16_IRQn); */
-    /* USER CODE END TIM16:TIM1_UP_TIM16_IRQn disable */
+    /* HAL_NVIC_DisableIRQ(TIM1_TRG_COM_TIM17_IRQn); */
+    /* USER CODE END TIM17:TIM1_TRG_COM_TIM17_IRQn disable */
 
-    /* USER CODE BEGIN TIM16_MspDeInit 1 */
+    /* USER CODE BEGIN TIM17_MspDeInit 1 */
 
-    /* USER CODE END TIM16_MspDeInit 1 */
+    /* USER CODE END TIM17_MspDeInit 1 */
   }
 
 }
