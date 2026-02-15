@@ -4,7 +4,7 @@
 
 #include "ring_buffer.h"
 
-void ring_buffer_init(ring_buffer *rb, uint8_t *buffer, size_t capacity)
+void ring_buffer_init(RingBuffer *rb, uint8_t *buffer, size_t capacity)
 {
     rb->capacity = capacity;
     rb->count = 0;
@@ -13,7 +13,7 @@ void ring_buffer_init(ring_buffer *rb, uint8_t *buffer, size_t capacity)
     rb->data = buffer;
 };
 
-bool ring_buffer_push(ring_buffer *rb, uint8_t data)
+bool ring_buffer_push(RingBuffer *rb, uint8_t data)
 {
     if (rb->count == rb->capacity)
     {
@@ -28,7 +28,7 @@ bool ring_buffer_push(ring_buffer *rb, uint8_t data)
     return false;
 };
 
-bool ring_buffer_pop(ring_buffer *rb, uint8_t *out)
+bool ring_buffer_pop(RingBuffer *rb, uint8_t *out)
 {
     if (rb->count == 0)
     {
@@ -43,7 +43,7 @@ bool ring_buffer_pop(ring_buffer *rb, uint8_t *out)
     return true;
 };
 
-bool ring_buffer_is_empty(const ring_buffer *rb)
+bool ring_buffer_is_empty(const RingBuffer *rb)
 {
     return rb->count == 0;
 };

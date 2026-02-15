@@ -13,7 +13,7 @@ typedef enum
     HUMAN,  // 50%
     HARE,   // 75%
     JAGUAR  // 100%
-} tb6612fng_speed_e;
+} MotorSpeed;
 
 /**
  * @brief Direction of the motor.
@@ -24,7 +24,7 @@ typedef enum
     STOP,
     FORWARD, // Clockwise (CW)
     REVERSE  // Counterclockwise (CCW)
-} tb6612fng_direction_e;
+} MotorDirection;
 
 /**
  * @brief Initialize the motor driver.
@@ -49,7 +49,7 @@ void motor_driver_start(void);
  *
  * @param speed  Speed in levels
  */
-void motor_driver_set_speed(tb6612fng_speed_e speed);
+void motor_driver_set_speed(MotorSpeed speed);
 /**
  * @brief Control whether the motor should drive forward or in reverse.
  *
@@ -57,4 +57,4 @@ void motor_driver_set_speed(tb6612fng_speed_e speed);
  *
  * @param direction  Direction of the motor.
  */
-void motor_driver_set_direction(tb6612fng_direction_e direction);
+void motor_driver_set_direction(MotorDirection direction);

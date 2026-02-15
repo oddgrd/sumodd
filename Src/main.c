@@ -25,8 +25,8 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-#include "drivers/tb6612fng.h"
-#include "drivers/nec_capture.h"
+#include "drivers/motor_driver.h"
+#include "drivers/ir_remote.h"
 #include "drivers/line_sensor.h"
 #include "state.h"
 #include "stm32f303x8.h"
@@ -96,7 +96,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART2_UART_Init();
-  nec_capture_init();
+  ir_remote_init();
   line_sensor_init();
   motor_driver_init();
   motor_driver_start();
@@ -114,7 +114,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
     uint8_t msg = 0;
-    bool new_message = nec_capture_read(&msg);
+    bool new_message = ir_remote_read(&msg);
 
     if (new_message)
     {

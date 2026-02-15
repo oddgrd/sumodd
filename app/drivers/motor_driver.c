@@ -1,6 +1,6 @@
 #include "main.h"
 
-#include "tb6612fng.h"
+#include "motor_driver.h"
 
 // Handle to the TIM2 peripheral used for motor controller PWM.
 TIM_HandleTypeDef htim2;
@@ -48,7 +48,7 @@ static void MX_TIM2_Init(void)
     HAL_TIM_MspPostInit(&htim2);
 }
 
-void motor_driver_set_direction(tb6612fng_direction_e direction)
+void motor_driver_set_direction(MotorDirection direction)
 {
     switch (direction)
     {
@@ -68,7 +68,7 @@ void motor_driver_set_direction(tb6612fng_direction_e direction)
     // TODO: default for bad input
 }
 
-void motor_driver_set_speed(tb6612fng_speed_e speed)
+void motor_driver_set_speed(MotorSpeed speed)
 {
     switch (speed)
     {

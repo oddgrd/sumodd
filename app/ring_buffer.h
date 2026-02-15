@@ -18,7 +18,7 @@ typedef struct
     size_t count;
     size_t head;
     size_t tail;
-} ring_buffer;
+} RingBuffer;
 
 /**
  * @brief Initialize a circular buffer.
@@ -30,7 +30,7 @@ typedef struct
  * @param buffer    Backing buffer.
  * @param capacity  Size of the backing buffer in bytes. Must be > 0.
  */
-void ring_buffer_init(ring_buffer *rb, uint8_t *buffer, size_t capacity);
+void ring_buffer_init(RingBuffer *rb, uint8_t *buffer, size_t capacity);
 
 /**
  * @brief Push an item to the ring buffer.
@@ -40,7 +40,7 @@ void ring_buffer_init(ring_buffer *rb, uint8_t *buffer, size_t capacity);
  *
  * @return true if the item was pushed, false if the buffer was full.
  */
-bool ring_buffer_push(ring_buffer *rb, uint8_t data);
+bool ring_buffer_push(RingBuffer *rb, uint8_t data);
 
 /**
  * @brief Pop an item from the ring buffer.
@@ -50,6 +50,6 @@ bool ring_buffer_push(ring_buffer *rb, uint8_t data);
  *
  * @return true if the item was popped, false if the buffer was empty.
  */
-bool ring_buffer_pop(ring_buffer *rb, uint8_t *out);
+bool ring_buffer_pop(RingBuffer *rb, uint8_t *out);
 
-bool ring_buffer_is_empty(const ring_buffer *rb);
+bool ring_buffer_is_empty(const RingBuffer *rb);

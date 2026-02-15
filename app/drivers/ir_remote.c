@@ -3,7 +3,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 
-#include "nec_capture.h"
+#include "ir_remote.h"
 #include "app_config.h"
 #include "ring_buffer.h"
 
@@ -18,7 +18,7 @@ static uint8_t pulse_count = 0;
 static uint16_t last = 0;
 
 static uint8_t nec_buffer[10] = {0};
-ring_buffer nec_commands = {0};
+RingBuffer nec_commands = {0};
 
 /**
  * @brief TIM16 Initialization Function
@@ -74,7 +74,7 @@ typedef enum
     NEC_OK = 0,
     NEC_ERR_ADDR,
     NEC_ERR_CMD_INVERT
-} nec_status_t;
+} NecStatus;
 
 /**
  * @brief Parse an NECx message from a raw 32-bit frame.
@@ -86,9 +86,9 @@ typedef enum
  * @retval NEC_ERR_ADDR         Address does not match IR_REMOTE_ADDR.
  * @retval NEC_ERR_CMD_INVERT   Command inverse check failed.
  */
-static nec_status_t parse_necx(const uint32_t raw, necx_decoded *out)
+static NecStatus parse_necx(const uint32_t raw, NecxDecoded *out)
 {
-    necx_decoded decoded = {0};
+    NecxDecoded decoded = {0};
 
     // Address is received in as two bytes, LSB first, with bits reversed.
     uint8_t addr_lsb = reverse_bits((raw >> 24) & 0xFF);
@@ -123,7 +123,7 @@ static nec_status_t parse_necx(const uint32_t raw, necx_decoded *out)
  * @param htim        Handle to input capture timer peripheral.
  * @param nec_buffer  Output buffer for the decoded frame.
  */
-static void nec_capture_isr(TIM_HandleTypeDef *htim, ring_buffer *nec_buffer)
+static void nec_capture_isr(TIM_HandleTypeDef *htim, RingBuffer *nec_buffer)
 {
     // Safe cast, TIM16 has a 16-bit auto-reload upcounter.
     uint16_t now = (uint16_t)HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
@@ -147,7 +147,7 @@ static void nec_capture_isr(TIM_HandleTypeDef *htim, ring_buffer *nec_buffer)
 
     if (pulse_count == FINAL_PULSE)
     {
-        necx_decoded decoded = {0};
+        NecxDecoded decoded = {0};
 
         int ret = parse_necx(raw_message, &decoded);
         if (ret == 0)
@@ -164,7 +164,7 @@ static void nec_capture_isr(TIM_HandleTypeDef *htim, ring_buffer *nec_buffer)
     }
 }
 
-bool nec_capture_read(uint8_t *out)
+bool ir_remote_read(uint8_t *out)
 {
     return ring_buffer_pop(&nec_commands, out);
 }
@@ -177,7 +177,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
     }
 }
 
-void nec_capture_init(void)
+void ir_remote_init(void)
 {
     MX_TIM16_Init();
     ring_buffer_init(&nec_commands, nec_buffer, sizeof(nec_buffer));
