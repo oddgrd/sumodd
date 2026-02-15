@@ -140,3 +140,9 @@ This leaves the PWM duty cycle at 50%, as it is HIGH 50% of the period. The moto
 this signal to switch the voltage it supplies to the motor (from VM) on and off at f_PWM, which
 will provide an average voltage to the motor. If the input from VM is 6V, at 800 CCR the motors
 will see 3V.
+
+We could adjust the PCK, and set ARR to 100, so that we can easily adjust the duty cycle from 0% to
+100% by setting CCR between 0-100, but that gives us poorer resolution. At 100 ARR, a change of 1 is
+a change of 1% in voltage. At 1600 ARR, a change of 1 is a 0.0625% change in voltage, which gives us
+a lot smoother control of the motor. However, that level of control is likely not important for a
+sumo bot, so I may change it later.

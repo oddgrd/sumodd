@@ -25,8 +25,8 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-#include "nec_capture.h"
-#include "ring_buffer.h"
+#include "drivers/tb6612fng.h"
+#include "drivers/nec_capture.h"
 #include "stm32f303x8.h"
 /* USER CODE END Includes */
 
@@ -47,11 +47,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
-
 TIM_HandleTypeDef htim1;
-TIM_HandleTypeDef htim2;
-TIM_HandleTypeDef htim16;
-
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
@@ -61,36 +57,23 @@ UART_HandleTypeDef huart2;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_TIM16_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM1_Init(void);
-static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-typedef enum State
+typedef enum
 {
   STANDBY,
   SEARCH,
   ATTACK,
   RETREAT
-};
-static enum State state = STANDBY;
-
-static uint8_t nec_buffer[10] = {0};
-static ring_buffer nec_commands = {0};
-
-void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
-{
-  if (htim->Instance == TIM16 && htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
-  {
-    nec_capture_isr(htim, &nec_commands);
-  }
-}
+} State;
+static State state = STANDBY;
 
 // Callback for the T
 void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef *hadc)
@@ -134,20 +117,12 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_TIM16_Init();
   MX_USART2_UART_Init();
   MX_ADC1_Init();
   MX_TIM1_Init();
-  MX_TIM2_Init();
+  nec_capture_init();
+  motor_driver_init();
   /* USER CODE BEGIN 2 */
-
-  // Ensure ring buffer is initialized before NEC ISR needs it.
-  ring_buffer_init(&nec_commands, nec_buffer, sizeof(nec_buffer));
-
-  if (HAL_TIM_IC_Start_IT(&htim16, TIM_CHANNEL_1) != HAL_OK)
-  {
-    Error_Handler();
-  };
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -163,16 +138,7 @@ int main(void)
     Error_Handler();
   }
 
-  if (HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_0, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_1, GPIO_PIN_RESET);
-
-  // set motor stby high
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);
+  motor_driver_start();
 
   printf("****Starting Sumo Bot****\n");
   printf("****Awaiting command to exit standby mode****\n");
@@ -181,9 +147,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    // TODO: use a circular buffer instead.
     uint8_t msg = 0;
-    bool new_message = ring_buffer_pop(&nec_commands, &msg);
+    bool new_message = nec_capture_read(&msg);
 
     if (new_message)
     {
@@ -205,14 +170,14 @@ int main(void)
     }
     if (state == RETREAT)
     {
-      __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 800);
+      motor_driver_set_speed(HUMAN);
     }
     else if (state == STANDBY)
     {
-      __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 0);
+      motor_driver_set_speed(STOP);
     }
 
-    HAL_Delay(500);
+    HAL_Delay(100);
   }
   /* USER CODE END 3 */
 }
@@ -410,99 +375,6 @@ static void MX_TIM1_Init(void)
   /* USER CODE BEGIN TIM1_Init 2 */
 
   /* USER CODE END TIM1_Init 2 */
-}
-
-/**
- * @brief TIM2 Initialization Function
- * @param None
- * @retval None
- */
-static void MX_TIM2_Init(void)
-{
-
-  /* USER CODE BEGIN TIM2_Init 0 */
-
-  /* USER CODE END TIM2_Init 0 */
-
-  TIM_MasterConfigTypeDef sMasterConfig = {0};
-  TIM_OC_InitTypeDef sConfigOC = {0};
-
-  /* USER CODE BEGIN TIM2_Init 1 */
-
-  /* USER CODE END TIM2_Init 1 */
-  htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 0;
-  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 1600 - 1;
-  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 800;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM2_Init 2 */
-
-  /* USER CODE END TIM2_Init 2 */
-  HAL_TIM_MspPostInit(&htim2);
-}
-
-/**
- * @brief TIM16 Initialization Function
- * @param None
- * @retval None
- */
-static void MX_TIM16_Init(void)
-{
-
-  /* USER CODE BEGIN TIM16_Init 0 */
-
-  /* USER CODE END TIM16_Init 0 */
-
-  TIM_IC_InitTypeDef sConfigIC = {0};
-
-  /* USER CODE BEGIN TIM16_Init 1 */
-
-  /* USER CODE END TIM16_Init 1 */
-  htim16.Instance = TIM16;
-  htim16.Init.Prescaler = 32 - 1;
-  htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim16.Init.Period = 65536 - 1;
-  htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim16.Init.RepetitionCounter = 0;
-  htim16.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim16) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_IC_Init(&htim16) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sConfigIC.ICPolarity = TIM_INPUTCHANNELPOLARITY_FALLING;
-  sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI;
-  sConfigIC.ICPrescaler = TIM_ICPSC_DIV1;
-  sConfigIC.ICFilter = 0;
-  if (HAL_TIM_IC_ConfigChannel(&htim16, &sConfigIC, TIM_CHANNEL_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM16_Init 2 */
-
-  /* USER CODE END TIM16_Init 2 */
 }
 
 /**

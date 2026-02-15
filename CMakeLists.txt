@@ -45,7 +45,8 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
-    app/nec_capture.c
+    app/drivers/tb6612fng.c
+    app/drivers/nec_capture.c
     app/ring_buffer.c
 )
 

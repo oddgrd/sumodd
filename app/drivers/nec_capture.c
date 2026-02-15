@@ -1,4 +1,4 @@
-#include "stm32f3xx_hal.h"
+#include "main.h"
 #include <stdint.h>
 #include <inttypes.h>
 #include <stdio.h>
@@ -10,10 +10,52 @@
 #define FINAL_PULSE 34U
 #define B1_PULSE_WIDTH_TICKS 1800U
 
+TIM_HandleTypeDef htim16;
+
 static uint32_t raw_message = 0;
 
 static uint8_t pulse_count = 0;
 static uint16_t last = 0;
+
+static uint8_t nec_buffer[10] = {0};
+ring_buffer nec_commands = {0};
+
+/**
+ * @brief TIM16 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_TIM16_Init(void)
+{
+    TIM_IC_InitTypeDef sConfigIC = {0};
+
+    htim16.Instance = TIM16;
+    // Timer clock = 32 MHz. Prescaler = 32 -> 32 MHz / 32 = 1 MHz (1 µs per tick).
+    htim16.Init.Prescaler = 32 - 1; // hardware divides by (PSC + 1)
+    htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
+    // Use u16 max so we can easily and safely wrapping subtract the counter when calculating the
+    // delta.
+    htim16.Init.Period = 65536 - 1; // timer counts from 0..=65535
+    htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    htim16.Init.RepetitionCounter = 0;
+    htim16.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    if (HAL_TIM_Base_Init(&htim16) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    if (HAL_TIM_IC_Init(&htim16) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    sConfigIC.ICPolarity = TIM_INPUTCHANNELPOLARITY_FALLING;
+    sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI;
+    sConfigIC.ICPrescaler = TIM_ICPSC_DIV1;
+    sConfigIC.ICFilter = 0;
+    if (HAL_TIM_IC_ConfigChannel(&htim16, &sConfigIC, TIM_CHANNEL_1) != HAL_OK)
+    {
+        Error_Handler();
+    }
+}
 
 /**
  * Reverse the bit order of a byte, making the LSB the MSB, the second LSB the second MSB, and so
@@ -72,7 +114,16 @@ static nec_status_t parse_necx(const uint32_t raw, necx_decoded *out)
     return NEC_OK;
 }
 
-void nec_capture_isr(TIM_HandleTypeDef *htim, ring_buffer *nec_buffer)
+/**
+ * @brief Input-capture callback for NEC IR signal decoding.
+ *
+ * Triggered by a timer peripheral set to input capture on the falling edges of an NEC
+ * IR signal. Pulse timing is accumulated to assemble and decode an NEC frame.
+ *
+ * @param htim        Handle to input capture timer peripheral.
+ * @param nec_buffer  Output buffer for the decoded frame.
+ */
+static void nec_capture_isr(TIM_HandleTypeDef *htim, ring_buffer *nec_buffer)
 {
     // Safe cast, TIM16 has a 16-bit auto-reload upcounter.
     uint16_t now = (uint16_t)HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
@@ -111,4 +162,28 @@ void nec_capture_isr(TIM_HandleTypeDef *htim, ring_buffer *nec_buffer)
         raw_message = 0;
         pulse_count = 0;
     }
+}
+
+bool nec_capture_read(uint8_t *out)
+{
+    return ring_buffer_pop(&nec_commands, out);
+}
+
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+{
+    if (htim->Instance == TIM16 && htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
+    {
+        nec_capture_isr(htim, &nec_commands);
+    }
+}
+
+void nec_capture_init(void)
+{
+    MX_TIM16_Init();
+    ring_buffer_init(&nec_commands, nec_buffer, sizeof(nec_buffer));
+
+    if (HAL_TIM_IC_Start_IT(&htim16, TIM_CHANNEL_1) != HAL_OK)
+    {
+        Error_Handler();
+    };
 }
