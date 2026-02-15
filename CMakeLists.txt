@@ -47,6 +47,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     app/drivers/tb6612fng.c
     app/drivers/nec_capture.c
+    app/drivers/line_sensor.c
+    app/state.c
     app/ring_buffer.c
 )
 
