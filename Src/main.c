@@ -105,45 +105,16 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  state_machine_init();
 
-  printf("****Starting Sumo Bot****\n");
-  printf("****Awaiting command to exit standby mode****\n");
+  // printf("****Starting Sumo Bot****\n");
+  // printf("****Awaiting command to exit standby mode****\n");
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    uint8_t msg = 0;
-    bool new_message = ir_remote_read(&msg);
-
-    if (new_message)
-    {
-      // printf("cmd: 0x%02x, c_inverted: 0x%02x, addr: 0x%02x\n", msg.cmd, msg.cmd_inverted, msg.addr);
-      printf("cmd: 0x%02x\n", msg);
-
-      if (msg == 0x11)
-      {
-        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_SET);
-      }
-      else if (msg == 0x10)
-      {
-        sumo_bot_state = STANDBY;
-      }
-      else
-      {
-        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_RESET);
-      }
-    }
-    if (sumo_bot_state == RETREAT)
-    {
-      motor_driver_set_speed(HUMAN);
-    }
-    else if (sumo_bot_state == STANDBY)
-    {
-      motor_driver_set_speed(STOP);
-    }
-
-    HAL_Delay(500);
+    state_machine_run();
   }
   /* USER CODE END 3 */
 }

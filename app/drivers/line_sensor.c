@@ -1,9 +1,11 @@
 #include "main.h"
 #include "line_sensor.h"
 #include "state.h"
+#include <stdbool.h>
 
 ADC_HandleTypeDef hadc2;
 TIM_HandleTypeDef htim1;
+volatile bool edge_armed = true;
 
 /**
  * @brief ADC2 Initialization Function
@@ -126,13 +128,16 @@ static void MX_TIM1_Init(void)
 
 void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef *hadc)
 {
-    if (hadc->Instance == ADC2)
+    if (hadc->Instance == ADC2 && edge_armed)
     {
-        sumo_bot_state = RETREAT;
-        // TODO: disable isr until the bot leaves the RETREAT state? ADC conversions are only triggered
-        // every 20ms, so it's not the end of the world at this stage.
-        HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3);
+        state_event_push(EDGE_DETECTED);
+        edge_armed = false;
     }
+}
+
+void line_sensor_restart_isr(void)
+{
+    edge_armed = true;
 }
 
 void line_sensor_init(void)

@@ -22,15 +22,6 @@ typedef struct
 void ir_remote_init(void);
 
 /**
- * @brief Try to read a command from the IR remote ring buffer.
- *
- * @param out  Output byte buffer.
- *
- * @return true if an item was popped, false if the ring buffer was empty.
- */
-bool ir_remote_read(uint8_t *out);
-
-/**
  * @brief Interrupt callback for input capture.
  */
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim);

@@ -4,8 +4,8 @@
 #include <stdio.h>
 
 #include "ir_remote.h"
+#include "state.h"
 #include "app_config.h"
-#include "ring_buffer.h"
 
 #define FINAL_PULSE 34U
 #define B1_PULSE_WIDTH_TICKS 1800U
@@ -16,9 +16,6 @@ static uint32_t raw_message = 0;
 
 static uint8_t pulse_count = 0;
 static uint16_t last = 0;
-
-static uint8_t nec_buffer[10] = {0};
-RingBuffer nec_commands = {0};
 
 /**
  * @brief TIM17 Initialization Function
@@ -118,9 +115,8 @@ static NecStatus parse_necx(const uint32_t raw, NecxDecoded *out)
  * IR signal. Pulse timing is accumulated to assemble and decode an NEC frame.
  *
  * @param htim        Handle to input capture timer peripheral.
- * @param nec_buffer  Output buffer for the decoded frame.
  */
-static void nec_capture_isr(TIM_HandleTypeDef *htim, RingBuffer *nec_buffer)
+static void nec_capture_isr(TIM_HandleTypeDef *htim)
 {
     // Safe cast, TIM16 has a 16-bit auto-reload upcounter.
     uint16_t now = (uint16_t)HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
@@ -149,7 +145,16 @@ static void nec_capture_isr(TIM_HandleTypeDef *htim, RingBuffer *nec_buffer)
         int ret = parse_necx(raw_message, &decoded);
         if (ret == 0)
         {
-            ring_buffer_push(nec_buffer, decoded.cmd);
+            switch (decoded.cmd)
+            {
+            case 0x10:
+                state_event_push(IR_START);
+                break;
+            case 0x11:
+                state_event_push(IR_STOP);
+            default:
+                break;
+            }
         }
         else
         {
@@ -161,23 +166,17 @@ static void nec_capture_isr(TIM_HandleTypeDef *htim, RingBuffer *nec_buffer)
     }
 }
 
-bool ir_remote_read(uint8_t *out)
-{
-    return ring_buffer_pop(&nec_commands, out);
-}
-
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
     if (htim->Instance == TIM17 && htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
     {
-        nec_capture_isr(htim, &nec_commands);
+        nec_capture_isr(htim);
     }
 }
 
 void ir_remote_init(void)
 {
     MX_TIM17_Init();
-    ring_buffer_init(&nec_commands, nec_buffer, sizeof(nec_buffer));
 
     if (HAL_TIM_IC_Start_IT(&htim17, TIM_CHANNEL_1) != HAL_OK)
     {

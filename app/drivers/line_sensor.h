@@ -12,3 +12,6 @@ void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef *hadc);
  * Start the timer peripheral that triggers ADC conversion, start the ADC and the ADC watchdog.
  */
 void line_sensor_init(void);
+
+// TODO: temporary work-around, remove when we remove ADC watchdog.
+void line_sensor_restart_isr(void);

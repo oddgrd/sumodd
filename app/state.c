@@ -1,3 +1,139 @@
-#include "state.h"
+#include "main.h"
 
-volatile State sumo_bot_state = STANDBY;
+#include <stdint.h>
+#include "ring_buffer.h"
+#include "state.h"
+#include "drivers/line_sensor.h"
+#include "drivers/motor_driver.h"
+
+#define RETREAT_DURATION_MS (2000)
+#define BLINK_INTERVAL_MS (500)
+
+static struct RobotState
+{
+    State state;
+    uint32_t retreat_start_ms;
+    uint32_t last_blink_ms;
+
+} robot_state;
+
+static uint8_t event_buffer[10] = {0};
+static RingBuffer event_queue = {0};
+
+void state_event_push(Event event)
+{
+    // TODO: return something to caller?
+    ring_buffer_push(&event_queue, event);
+}
+
+void state_enter(State new_state)
+{
+    switch (new_state)
+    {
+    case SEARCH:
+        // TODO: this is messy, remove adc watchdog.
+        line_sensor_restart_isr();
+        // TODO: rotate? Poll i2c data ready?
+        motor_driver_set_speed(JAGUAR);
+        motor_driver_set_direction(FORWARD);
+        break;
+    case ATTACK:
+        motor_driver_set_speed(HARE);
+        // TODO: set direction to what we read from distances sensor, shared in statemachine state.
+        motor_driver_set_direction(FORWARD);
+        break;
+    case RETREAT:
+        robot_state.retreat_start_ms = HAL_GetTick();
+        motor_driver_set_speed(TURTLE);
+        // TODO: start a timer before reversing, using a timer peripheral, and interrupt when it expires?
+        motor_driver_set_direction(REVERSE);
+        // TODO: turn when timer expires, then return to SEARCH state.
+        break;
+    case STANDBY:
+        robot_state.last_blink_ms = HAL_GetTick();
+        motor_driver_set_speed(OFF);
+        motor_driver_set_direction(STOP);
+        break;
+    }
+}
+
+// TODO: pass pointer to robot_state, rather than using global.
+void process_event(Event event)
+{
+    switch (event)
+    {
+    case IR_START:
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, RESET);
+        robot_state.state = SEARCH;
+        state_enter(SEARCH);
+        break;
+    case IR_STOP:
+        robot_state.state = STANDBY;
+        state_enter(STANDBY);
+        break;
+    case OPPONENT_DETECTED:
+        robot_state.state = ATTACK;
+        state_enter(ATTACK);
+        break;
+    case OPPONENT_LOST:
+        robot_state.state = SEARCH;
+        state_enter(SEARCH);
+        break;
+    case EDGE_DETECTED:
+        robot_state.state = RETREAT;
+        state_enter(RETREAT);
+        break;
+    case RETREAT_DONE:
+        robot_state.state = SEARCH;
+        line_sensor_restart_isr();
+        state_enter(SEARCH);
+        break;
+    default:
+        break;
+    }
+}
+
+void state_machine_init(void)
+{
+    ring_buffer_init(&event_queue, event_buffer, sizeof(event_buffer));
+    robot_state.retreat_start_ms = 0;
+    robot_state.last_blink_ms = 0;
+    robot_state.state = STANDBY;
+}
+
+void state_machine_run(void)
+{
+
+    Event next_event;
+    while (ring_buffer_pop(&event_queue, &next_event))
+    {
+        process_event(next_event);
+    }
+
+    switch (robot_state.state)
+    {
+    case SEARCH:
+        // poll distance sensor data ready, update state machine context when we do.
+        break;
+    case ATTACK:
+        // poll distance sensor
+        // steer towards opponent
+        break;
+    case RETREAT:
+        // check retreat timer, push RETREAT_DONE when it times out.
+        if ((HAL_GetTick() - robot_state.retreat_start_ms) > RETREAT_DURATION_MS)
+        {
+            state_event_push(RETREAT_DONE);
+        }
+        break;
+    case STANDBY:
+        if ((HAL_GetTick() - robot_state.last_blink_ms) >= BLINK_INTERVAL_MS)
+        {
+            robot_state.last_blink_ms = HAL_GetTick();
+            HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3);
+        }
+        break;
+    default:
+        break;
+    }
+}
