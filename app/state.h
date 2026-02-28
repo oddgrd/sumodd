@@ -10,11 +10,14 @@ typedef enum
 
 typedef enum
 {
-    IR_START,
     IR_STOP,
+    IR_START,
     OPPONENT_DETECTED,
     OPPONENT_LOST,
-    EDGE_DETECTED,
+    // TODO: just keep one event type for edge detected, and rather keep state about which sensors
+    // are triggered?
+    FRONT_LEFT_EDGE_DETECTED,
+    FRONT_RIGHT_EDGE_DETECTED,
     RETREAT_DONE,
 } Event;
 

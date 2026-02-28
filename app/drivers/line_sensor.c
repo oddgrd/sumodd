@@ -1,11 +1,16 @@
 #include "main.h"
 #include "line_sensor.h"
 #include "state.h"
+#include <stdint.h>
 #include <stdbool.h>
+
+#define LINE_DETECTED_THRESHOLD 700
 
 ADC_HandleTypeDef hadc2;
 TIM_HandleTypeDef htim1;
-volatile bool edge_armed = true;
+
+// Buffer for the ADC conversion value of all four channels, representing all four line sensors.
+uint16_t adc_buffer[4] = {0};
 
 /**
  * @brief ADC2 Initialization Function
@@ -14,7 +19,6 @@ volatile bool edge_armed = true;
  */
 static void MX_ADC2_Init(void)
 {
-    ADC_AnalogWDGConfTypeDef AnalogWDGConfig = {0};
     ADC_ChannelConfTypeDef sConfig = {0};
 
     /** Common config
@@ -22,31 +26,18 @@ static void MX_ADC2_Init(void)
     hadc2.Instance = ADC2;
     hadc2.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
     hadc2.Init.Resolution = ADC_RESOLUTION_10B;
-    hadc2.Init.ScanConvMode = ADC_SCAN_DISABLE;
+    hadc2.Init.ScanConvMode = ADC_SCAN_ENABLE;
     hadc2.Init.ContinuousConvMode = DISABLE;
     hadc2.Init.DiscontinuousConvMode = DISABLE;
     hadc2.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
     hadc2.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_TRGO;
     hadc2.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-    hadc2.Init.NbrOfConversion = 1;
-    hadc2.Init.DMAContinuousRequests = DISABLE;
-    hadc2.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+    hadc2.Init.NbrOfConversion = 4;
+    hadc2.Init.DMAContinuousRequests = ENABLE;
+    hadc2.Init.EOCSelection = ADC_EOC_SEQ_CONV;
     hadc2.Init.LowPowerAutoWait = DISABLE;
     hadc2.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN;
     if (HAL_ADC_Init(&hadc2) != HAL_OK)
-    {
-        Error_Handler();
-    }
-
-    /** Configure Analog WatchDog 1
-     */
-    AnalogWDGConfig.WatchdogNumber = ADC_ANALOGWATCHDOG_1;
-    AnalogWDGConfig.WatchdogMode = ADC_ANALOGWATCHDOG_SINGLE_REG;
-    AnalogWDGConfig.HighThreshold = 1023;
-    AnalogWDGConfig.LowThreshold = 700;
-    AnalogWDGConfig.Channel = ADC_CHANNEL_1;
-    AnalogWDGConfig.ITMode = ENABLE;
-    if (HAL_ADC_AnalogWDGConfig(&hadc2, &AnalogWDGConfig) != HAL_OK)
     {
         Error_Handler();
     }
@@ -59,6 +50,33 @@ static void MX_ADC2_Init(void)
     sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
     sConfig.OffsetNumber = ADC_OFFSET_NONE;
     sConfig.Offset = 0;
+    if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    /** Configure Regular Channel
+     */
+    sConfig.Channel = ADC_CHANNEL_2;
+    sConfig.Rank = ADC_REGULAR_RANK_2;
+    if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    /** Configure Regular Channel
+     */
+    sConfig.Channel = ADC_CHANNEL_3;
+    sConfig.Rank = ADC_REGULAR_RANK_3;
+    if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    /** Configure Regular Channel
+     */
+    sConfig.Channel = ADC_CHANNEL_4;
+    sConfig.Rank = ADC_REGULAR_RANK_4;
     if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
     {
         Error_Handler();
@@ -126,18 +144,29 @@ static void MX_TIM1_Init(void)
     }
 }
 
-void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef *hadc)
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
-    if (hadc->Instance == ADC2 && edge_armed)
+    if (hadc->Instance == ADC2)
     {
-        state_event_push(EDGE_DETECTED);
-        edge_armed = false;
+        // TODO: determine retreat direction based on value of all sensors, reverse if front
+        // two, ahead if back two, front right if back right, front left if back left, etc.
+        if (adc_buffer[0] < LINE_DETECTED_THRESHOLD)
+        {
+            state_event_push(FRONT_LEFT_EDGE_DETECTED);
+        }
+        if (adc_buffer[1] < LINE_DETECTED_THRESHOLD)
+        {
+            state_event_push(FRONT_RIGHT_EDGE_DETECTED);
+        }
+        // if (adc_buffer[2] < LINE_DETECTED_THRESHOLD)
+        // {
+        //     state_event_push(FRONT_RIGHT_EDGE_DETECTED);
+        // }
+        // if (adc_buffer[3] < LINE_DETECTED_THRESHOLD)
+        // {
+        //     state_event_push(FRONT_RIGHT_EDGE_DETECTED);
+        // }
     }
-}
-
-void line_sensor_restart_isr(void)
-{
-    edge_armed = true;
 }
 
 void line_sensor_init(void)
@@ -145,10 +174,10 @@ void line_sensor_init(void)
     MX_TIM1_Init();
     MX_ADC2_Init();
 
-    if (HAL_ADC_Start(&hadc2) != HAL_OK)
+    if (HAL_ADC_Start_DMA(&hadc2, (uint32_t *)adc_buffer, 4) != HAL_OK)
     {
         Error_Handler();
-    };
+    }
 
     if (HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1) != HAL_OK)
     {

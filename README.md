@@ -11,7 +11,8 @@
 - TB6612FNG motor drivers to control the motors.
     - https://cdn.sparkfun.com/assets/0/1/b/b/3/TB6612FNG.pdf
     - https://learn.sparkfun.com/tutorials/tb6612fng-hookup-guide/all
-- MPM3610 buck regulator for regulating the voltage to the MCU.
+- MPM3610 buck regulator for regulating the voltage to the MCU, ensuring it sees a steady 3.3v,
+regardless of battery voltage, which fluctuates with charge.
 
 ### Development
 
@@ -73,21 +74,29 @@ message.
 ### Line-sensor ADC
 
 We use one of the on-chip ADCs at 10bit resolution to convert the analog readings from the QRE1113 line
-sensors to digital values. The ADC conversion is not continuous, it is triggered by a timer
-peripheral every 20ms (timer clock divided to 1MHz, max count 20000, triggers an event when it maxes out).
-Then, an analog watchdog is configured to trigger an interrupt when a conversion value is outside of the
-desired range, which has been arrived at by manual testing to be whenever a line is encountered.
+sensors to digital values. We don't need high resolution, we are effectively only seeing high
+(black surface, center of dohyo) or low (white surface, border of dohyo). We should consider going
+down to 6 or 8 bit in the future, if faster conversions are needed. 
 
-We could use continuous conversion, but to reduce power usage, and to reduce the frequency of
-interrupts triggered by the watchdog, we use the timer output trigger strategy. We will need to
+The ADC conversion is not continuous, it is triggered by a timer
+peripheral every 20ms (timer clock divided to 1MHz, max count 20000, triggers an event when it maxes out,
+which triggers the conversion).
+
+We started out using the STM32 ADC Watchdog, which can be set to trigger an interrupt when one or
+more channel conversions are outside of the desired range. However, this interrupt, when covering
+many channels, does not tell you which channel triggered it. Therefore, we decided to refactor to
+a DMA circular buffer based approach, where the ADC scans all 4 channels every time it is triggered
+by the timer event. The resulting conversion values are then placed in a buffer using DMA. When the
+scan conversion is completed, an interrupt is raised. In this interrupt we inspect the values of
+the buffer to see which channel triggered, which gives us the information we need to decide which
+direction to retreat. An event is then emitted to the state machine queue, which handles the rest.
+
+We couldn't use continuous conversion with this strategy, the interrupts would be too frequent, so
+we are likely to stick with the timer peripheral conversion trigger. However, we will likely need to
 tweak the timings here to be fast enough to work with the robot's speed when we get it up and running.
 
-See ST guide on this here:
+See ST guide on timer peripheral triggered ADC conversion here:
 https://community.st.com/t5/stm32-mcus/using-timers-to-trigger-adc-conversions-periodically/ta-p/49889
-
-Currently, it is only configured to work with one line-sensor, but it should be possible to have
-an ADC watchdog watch all 4 line sensors, and hopefully also to distinguish them, so we can know
-which sensor, and thus corner of the bot, has crossed the line.
 
 ## Motor driver
 
@@ -128,7 +137,7 @@ One period is 50us.
 
 We can control the duty cycle, how long each pulse is HIGH, from our application, by setting the
 capture and compare register (CCR) for the timer channel we are using to generate the PWM signal.
-When the counter is < than the CCR value, the channel output will be HIGH. When it is greater
+When the counter is smaller than the CCR value, the channel output will be HIGH. When it is greater
 than or equal to the CCR value, channel output will be low.
 
 For example, if we set the CCR register to 800:
@@ -145,4 +154,4 @@ We could adjust the PCK, and set ARR to 100, so that we can easily adjust the du
 100% by setting CCR between 0-100, but that gives us poorer resolution. At 100 ARR, a change of 1 is
 a change of 1% in voltage. At 1600 ARR, a change of 1 is a 0.0625% change in voltage, which gives us
 a lot smoother control of the motor. However, that level of control is likely not important for a
-sumo bot, so I may change it later.
+sumo bot, so we may change it later.

@@ -26,13 +26,11 @@ void state_event_push(Event event)
     ring_buffer_push(&event_queue, event);
 }
 
-void state_enter(State new_state)
+static void state_enter(State new_state)
 {
     switch (new_state)
     {
     case SEARCH:
-        // TODO: this is messy, remove adc watchdog.
-        line_sensor_restart_isr();
         // TODO: rotate? Poll i2c data ready?
         motor_driver_set_speed(JAGUAR);
         motor_driver_set_direction(FORWARD);
@@ -58,7 +56,7 @@ void state_enter(State new_state)
 }
 
 // TODO: pass pointer to robot_state, rather than using global.
-void process_event(Event event)
+static void process_event(Event event)
 {
     switch (event)
     {
@@ -79,13 +77,26 @@ void process_event(Event event)
         robot_state.state = SEARCH;
         state_enter(SEARCH);
         break;
-    case EDGE_DETECTED:
-        robot_state.state = RETREAT;
-        state_enter(RETREAT);
+    // TODO: different action depending on which line sensor triggered.
+    // TODO: what do we do if this event already triggered, and we get a new event? We need more
+    // state about the trigger state of all sensors.
+    case FRONT_LEFT_EDGE_DETECTED:
+        if (robot_state.state != RETREAT)
+        {
+            robot_state.state = RETREAT;
+            state_enter(RETREAT);
+        }
+        break;
+    // TODO: different action depending on which line sensor triggered.
+    case FRONT_RIGHT_EDGE_DETECTED:
+        if (robot_state.state != RETREAT)
+        {
+            robot_state.state = RETREAT;
+            state_enter(RETREAT);
+        }
         break;
     case RETREAT_DONE:
         robot_state.state = SEARCH;
-        line_sensor_restart_isr();
         state_enter(SEARCH);
         break;
     default:
@@ -104,7 +115,7 @@ void state_machine_init(void)
 void state_machine_run(void)
 {
 
-    Event next_event;
+    Event next_event = IR_STOP;
     while (ring_buffer_pop(&event_queue, &next_event))
     {
         process_event(next_event);
