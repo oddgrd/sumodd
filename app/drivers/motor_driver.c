@@ -14,14 +14,14 @@ static void MX_TIM2_Init(void)
     TIM_OC_InitTypeDef sConfigOC = {0};
 
     /**
-     * With the system clock running at 32MHz, we configure the period and prescaler to arrive at
+     * With the system clock running at 64MHz, we configure the period and prescaler to arrive at
      * 20KHz frequency:
      * f_PWM = f_TIM / ((PSC + 1)(ARR + 1))
-     * f_PWM = 32MHz / (1 * 1600)
+     * f_PWM = 64MHz / (2 * 1600)
      * f_PWM = 20KHz
      */
     htim2.Instance = TIM2;
-    htim2.Init.Prescaler = 0;
+    htim2.Init.Prescaler = 1 + 1;
     htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
     htim2.Init.Period = 1600 - 1; // 0..=1599
     htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;

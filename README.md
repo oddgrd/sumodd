@@ -2,7 +2,7 @@
 
 ### Hardware
 
-- STM32F303K8T6 MCU with 72MHz CPU, 64 KB flash and 12 KB SRAM. 
+- STM32F303K8T6 MCU with 72MHz CPU (64MHz with HSI), 64 KB flash and 12 KB SRAM. 
     - Data sheet: https://www.st.com/resource/en/datasheet/stm32f303c6.pdf
 - Sensors:
     - VL53LOX time-of-flight sensors for detecting enemies.
@@ -112,17 +112,17 @@ voltage we want it to see, rather it will see constantly fluctuating voltage, wh
 motor will not spin smoothly.
 
 To generate the PWM, we use a timer peripheral, TIM2 on the MCU. TIM2 is on the APB1 (advanced
-peripheral bus 1) bus. The system clock is set to 32MHz, and the APB1 prescaler is set to 1,
-so the TIM2 clock is also 32MHz. Furthermore:
+peripheral bus 1) bus. The system clock is set to 64MHz, and the APB1 prescaler is set to 1,
+so the TIM2 clock is also 64MHz. Furthermore:
 
 - TIM2 is set to count up.
-- The TIM2 prescaler (PSC) is set to 0, and the period is set to 1600. The timer will continously
+- The TIM2 prescaler (PSC) is set to 1, and the period is set to 1600. The timer will continously
 count up to this period value at the clock frequency, then reset. 
 
 We can calculate the PWM frequency from these values.
 
 f_PWM = f_TIM / ((PSC + 1)(ARR + 1))
-f_PWM = 32MHz / (1 * 1600)
+f_PWM = 64MHz / (2 * 1600)
 f_PWM = 20KHz
 One period is 50us.
 

@@ -27,7 +27,7 @@ static void MX_TIM17_Init(void)
     TIM_IC_InitTypeDef sConfigIC = {0};
 
     htim17.Instance = TIM17;
-    htim17.Init.Prescaler = 32 - 1;
+    htim17.Init.Prescaler = 64 - 1;
     htim17.Init.CounterMode = TIM_COUNTERMODE_UP;
     htim17.Init.Period = 65536 - 1;
     htim17.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
