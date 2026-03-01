@@ -48,6 +48,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     app/drivers/motor_driver.c
     app/drivers/ir_remote.c
     app/drivers/line_sensor.c
+    app/drivers/vl53lox.c
     app/state.c
     app/ring_buffer.c
 )
