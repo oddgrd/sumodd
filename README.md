@@ -1,20 +1,6 @@
 # Sumo bot
 
-### Hardware
-
-- STM32F303K8T6 MCU with 72MHz CPU (64MHz with HSI), 64 KB flash and 12 KB SRAM. 
-    - Data sheet: https://www.st.com/resource/en/datasheet/stm32f303c6.pdf
-- Sensors:
-    - VL53LOX time-of-flight sensors for detecting enemies.
-    - QRE1113 line sensors for detecting the arena edge.
-    - TSOP38238 infrared receiver for activating the robot remotely.
-- TB6612FNG motor drivers to control the motors.
-    - https://cdn.sparkfun.com/assets/0/1/b/b/3/TB6612FNG.pdf
-    - https://learn.sparkfun.com/tutorials/tb6612fng-hookup-guide/all
-- MPM3610 buck regulator for regulating the voltage to the MCU, ensuring it sees a steady 3.3v,
-regardless of battery voltage, which fluctuates with charge.
-
-### Development
+## Development
 
 To build the firmware:
 
@@ -47,6 +33,24 @@ arm-none-eabi-objcopy -O binary build/Debug/sumo.elf build/Debug/sumo.bin
 # Flash it and reset the device
 st-flash --reset write  build/Debug/sumo.bin 0x08000000
 ```
+
+### Running unit tests
+
+To run the unity unit tests, run: `./scripts/test.sh`
+
+## Hardware
+
+- STM32F303K8T6 MCU with 72MHz CPU (64MHz with HSI), 64 KB flash and 12 KB SRAM. 
+    - Data sheet: https://www.st.com/resource/en/datasheet/stm32f303c6.pdf
+- Sensors:
+    - VL53LOX time-of-flight sensors for detecting enemies.
+    - QRE1113 line sensors for detecting the arena edge.
+    - TSOP38238 infrared receiver for activating the robot remotely.
+- TB6612FNG motor drivers to control the motors.
+    - https://cdn.sparkfun.com/assets/0/1/b/b/3/TB6612FNG.pdf
+    - https://learn.sparkfun.com/tutorials/tb6612fng-hookup-guide/all
+- MPM3610 buck regulator for regulating the voltage to the MCU, ensuring it sees a steady 3.3v,
+regardless of battery voltage, which fluctuates with charge.
 
 ### IR Remote receiver
 
@@ -98,7 +102,7 @@ tweak the timings here to be fast enough to work with the robot's speed when we 
 See ST guide on timer peripheral triggered ADC conversion here:
 https://community.st.com/t5/stm32-mcus/using-timers-to-trigger-adc-conversions-periodically/ta-p/49889
 
-## Motor driver
+### Motor driver
 
 We cannot power the motor directly from the MCU, as it needs 3-6V, and will draw upwards of 60mA
 at full speed. The STM32F303K8T6 is rated for at most 25mA from any output pin, and 80mA total

@@ -6,8 +6,11 @@
 #include "drivers/line_sensor.h"
 #include "drivers/motor_driver.h"
 
-#define RETREAT_DURATION_MS (2000)
-#define BLINK_INTERVAL_MS (500)
+#define RETREAT_DURATION_MS (2000U)
+#define BLINK_INTERVAL_MS (500U)
+#define EVENT_BUFFER_SIZE (16U)
+
+_Static_assert((EVENT_BUFFER_SIZE & (EVENT_BUFFER_SIZE - 1)) == 0, "EVENT_BUFFER_SIZE must be a power of two");
 
 static struct RobotState
 {
@@ -17,7 +20,7 @@ static struct RobotState
 
 } robot_state;
 
-static uint8_t event_buffer[10] = {0};
+static uint8_t event_buffer[EVENT_BUFFER_SIZE] = {0};
 static RingBuffer event_queue = {0};
 
 void state_event_push(Event event)
