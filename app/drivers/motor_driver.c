@@ -52,6 +52,8 @@ static void MX_TIM2_Init(void)
     HAL_TIM_MspPostInit(&htim2);
 }
 
+// TODO: refactor to work with two motor drivers, where each control both motors on one side,
+// skid steering. Left is GPIO F0 and F1, right is A0 and A1.
 void motor_driver_set_direction(MotorDirection direction)
 {
     switch (direction)
@@ -72,6 +74,9 @@ void motor_driver_set_direction(MotorDirection direction)
     // TODO: default for bad input
 }
 
+// TODO: refactor to work for both motor drivers, left is CH4 and right is CH3, both motors on
+// each side will have the same speed, they use the same PWM channel, so the same CRR value to
+// adjust duty cycle.
 void motor_driver_set_speed(MotorSpeed speed)
 {
     switch (speed)
@@ -95,6 +100,7 @@ void motor_driver_set_speed(MotorSpeed speed)
     // TODO: default for bad input
 }
 
+// TODO: refactor, make part of init?
 void motor_driver_start(void)
 {
     motor_driver_set_direction(FORWARD);
@@ -104,9 +110,6 @@ void motor_driver_start(void)
     {
         Error_Handler();
     }
-
-    // Set STBY pin HIGH.
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);
 }
 
 void motor_driver_init()
