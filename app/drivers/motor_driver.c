@@ -21,7 +21,7 @@ static void MX_TIM2_Init(void)
      * f_PWM = 20KHz
      */
     htim2.Instance = TIM2;
-    htim2.Init.Prescaler = 1 + 1;
+    htim2.Init.Prescaler = 1;
     htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
     htim2.Init.Period = 1600 - 1; // 0..=1599
     htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;

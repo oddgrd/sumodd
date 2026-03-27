@@ -35,11 +35,11 @@ static void state_enter(State new_state)
     {
     case SEARCH:
         // TODO: rotate? Poll i2c data ready?
-        motor_driver_set_speed(JAGUAR);
+        motor_driver_set_speed(HARE);
         motor_driver_set_direction(FORWARD);
         break;
     case ATTACK:
-        motor_driver_set_speed(HARE);
+        motor_driver_set_speed(JAGUAR);
         // TODO: set direction to what we read from distances sensor, shared in statemachine state.
         motor_driver_set_direction(FORWARD);
         break;
