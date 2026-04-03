@@ -1,18 +1,20 @@
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "ring_buffer.h"
 
-void ring_buffer_init(RingBuffer *rb, uint8_t *buffer, uint32_t capacity)
+void ring_buffer_init(RingBuffer *rb, uint8_t *buffer, uint32_t capacity, uint32_t element_size)
 {
     rb->capacity = capacity;
+    rb->element_size = element_size;
     rb->head = 0;
     rb->tail = 0;
     rb->data = buffer;
 }
 
-// TODO: UNSAFE! Disable IRQ at start of function, restore after, to ensure single producer.// Ring buffer logic:
-bool ring_buffer_push(RingBuffer *rb, uint8_t data)
+// TODO: UNSAFE! Disable IRQ at start of function, restore after, to ensure single producer.
+bool ring_buffer_push(RingBuffer *rb, const void *item)
 {
     uint32_t head = rb->head;
 
@@ -34,14 +36,17 @@ bool ring_buffer_push(RingBuffer *rb, uint8_t data)
         return false; // Drop or handle overflow
     }
 
-    rb->data[head] = data;
+    // TODO: consider compiler barrier? To ensure write happens before head advances in other ISR.
+    // rb->data is a pointer to a byte buffer, so indexing it moves it by single bytes, but we may
+    // need multiple bytes per element, so we multiply by element size.
+    memcpy(&rb->data[head * rb->element_size], item, rb->element_size);
 
     rb->head = next_head;
     return true;
 }
 
 // Called from main loop only
-bool ring_buffer_pop(RingBuffer *rb, uint8_t *data)
+bool ring_buffer_pop(RingBuffer *rb, void *item)
 {
     uint32_t tail = rb->tail;
 
@@ -50,8 +55,8 @@ bool ring_buffer_pop(RingBuffer *rb, uint8_t *data)
         return false;
     }
 
-    // TODO: consider compiler barrier? To ensure read happens before tail advances.
-    *data = rb->data[tail];
+    // TODO: consider compiler barrier? To ensure read happens before tail advances in other ISR.
+    memcpy(item, &rb->data[tail * rb->element_size], rb->element_size);
 
     // Equivalent to modulo as long as the capacity is a power of two.
     // Examples with capacity 8:

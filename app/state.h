@@ -1,5 +1,8 @@
 #pragma once
 
+#include "drivers/ir_remote.h"
+#include "drivers/line_sensor.h"
+
 typedef enum
 {
     STANDBY,
@@ -8,20 +11,28 @@ typedef enum
     RETREAT
 } State;
 
+// TODO: retreat event?
 typedef enum
 {
-    IR_STOP,
-    IR_START,
-    OPPONENT_DETECTED,
-    OPPONENT_LOST,
-    // TODO: just keep one event type for edge detected, and rather keep state about which sensors
-    // are triggered?
-    FRONT_LEFT_EDGE_DETECTED,
-    FRONT_RIGHT_EDGE_DETECTED,
-    RETREAT_DONE,
-} Event;
+    EVT_IR_CMD,
+    EVT_ENEMY,
+    EVT_LINE_DETECTED,
+} state_event_type_t;
+
+/**
+ * @brief The type of event, and associated context for the given event type.
+ */
+typedef struct
+{
+    state_event_type_t type;
+    union
+    {
+        line_type_detected_t line;
+        ir_command_t ir_cmd;
+    };
+} state_event_t;
 
 // TODO: doc comments
 void state_machine_init(void);
 void state_machine_run(void);
-void state_event_push(Event event);
+void state_event_push(state_event_t *event);

@@ -61,14 +61,20 @@ void motor_driver_set_direction(MotorDirection direction)
     case STOP:
         HAL_GPIO_WritePin(GPIOF, GPIO_PIN_0, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOF, GPIO_PIN_1, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
         break;
     case FORWARD:
         HAL_GPIO_WritePin(GPIOF, GPIO_PIN_0, GPIO_PIN_SET);
         HAL_GPIO_WritePin(GPIOF, GPIO_PIN_1, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
         break;
     case REVERSE:
         HAL_GPIO_WritePin(GPIOF, GPIO_PIN_0, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOF, GPIO_PIN_1, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
         break;
     }
     // TODO: default for bad input
@@ -83,18 +89,28 @@ void motor_driver_set_speed(MotorSpeed speed)
     {
     case OFF:
         __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, 0);
+        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, 0);
+
         break;
     case TURTLE:
         __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, 400);
+        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, 400);
+
         break;
     case HUMAN:
         __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, 800);
+        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, 800);
+
         break;
     case HARE:
         __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, 1200);
+        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, 1200);
+
         break;
     case JAGUAR:
         __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, 1599);
+        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, 1599);
+
         break;
     }
     // TODO: default for bad input
@@ -107,6 +123,10 @@ void motor_driver_start(void)
     motor_driver_set_speed(STOP);
 
     if (HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    if (HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4) != HAL_OK)
     {
         Error_Handler();
     }

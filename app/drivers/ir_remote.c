@@ -80,9 +80,9 @@ typedef enum
  * @retval NEC_ERR_ADDR         Address does not match IR_REMOTE_ADDR.
  * @retval NEC_ERR_CMD_INVERT   Command inverse check failed.
  */
-static NecStatus parse_necx(const uint32_t raw, NecxDecoded *out)
+static NecStatus parse_necx(const uint32_t raw, necx_decoded_t *out)
 {
-    NecxDecoded decoded = {0};
+    necx_decoded_t decoded = {0};
 
     // Address is received in as two bytes, LSB first, with bits reversed.
     uint8_t addr_lsb = reverse_bits((raw >> 24) & 0xFF);
@@ -140,7 +140,8 @@ static void nec_capture_isr(TIM_HandleTypeDef *htim)
 
     if (pulse_count == FINAL_PULSE)
     {
-        NecxDecoded decoded = {0};
+        necx_decoded_t decoded = {0};
+        state_event_t event = {.type = EVT_IR_CMD, .line = IR_STOP};
 
         int ret = parse_necx(raw_message, &decoded);
         if (ret == 0)
@@ -148,10 +149,12 @@ static void nec_capture_isr(TIM_HandleTypeDef *htim)
             switch (decoded.cmd)
             {
             case 0x10:
-                state_event_push(IR_START);
+                event.ir_cmd = IR_START;
+                state_event_push(&event);
                 break;
             case 0x11:
-                state_event_push(IR_STOP);
+                event.ir_cmd = IR_STOP;
+                state_event_push(&event);
             default:
                 break;
             }

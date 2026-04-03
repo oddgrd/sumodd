@@ -12,7 +12,14 @@ typedef struct
     uint16_t addr;
     uint8_t cmd;
     uint8_t cmd_inverted;
-} NecxDecoded;
+} necx_decoded_t;
+
+// TODO: don't use hardcoded values?
+typedef enum
+{
+    IR_START = 0x10,
+    IR_STOP = 0x11
+} ir_command_t;
 
 /**
  * @brief Initialize the IR remote driver.
