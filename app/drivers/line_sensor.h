@@ -22,4 +22,4 @@ typedef enum
     LINE_FRONT_RIGHT,
     LINE_BACK_LEFT,
     LINE_BACK_RIGHT,
-} line_type_detected_t;
+} LineType;

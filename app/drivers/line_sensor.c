@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define LINE_DETECTED_THRESHOLD 700
+#define LINE_DETECTED_THRESHOLD 350
 
 ADC_HandleTypeDef hadc2;
 TIM_HandleTypeDef htim1;
@@ -150,9 +150,9 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
     {
         // TODO: determine retreat direction based on value of all sensors, reverse if front
         // two, ahead if back two, front right if back right, front left if back left, etc.
-        if (adc_buffer[0] < LINE_DETECTED_THRESHOLD)
+        if (adc_buffer[1] < LINE_DETECTED_THRESHOLD)
         {
-            state_event_t event = {.type = EVT_LINE_DETECTED, .line = LINE_FRONT};
+            StateEvent event = {.type = EVT_LINE_DETECTED, .line = LINE_FRONT};
             state_event_push(&event);
         }
         // if (adc_buffer[1] < LINE_DETECTED_THRESHOLD)
@@ -163,9 +163,9 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
         // {
         //     state_event_push(FRONT_RIGHT_EDGE_DETECTED);
         // }
-        if (adc_buffer[2] < LINE_DETECTED_THRESHOLD)
+        if (adc_buffer[3] < LINE_DETECTED_THRESHOLD)
         {
-            state_event_t event = {.type = EVT_LINE_DETECTED, .line = LINE_BACK};
+            StateEvent event = {.type = EVT_LINE_DETECTED, .line = LINE_BACK};
             state_event_push(&event);
         }
     }
