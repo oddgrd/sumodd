@@ -23,7 +23,7 @@ void test_ring_buffer_is_empty_after_init(void)
 void test_push_then_pop_then_empty(void)
 {
     uint8_t item = 42;
-    TEST_ASSERT_TRUE(ring_buffer_push(&rb, &item));
+    ring_buffer_push(&rb, &item);
 
     uint8_t out = 0;
     TEST_ASSERT_TRUE(ring_buffer_pop(&rb, &out));
@@ -31,15 +31,18 @@ void test_push_then_pop_then_empty(void)
     TEST_ASSERT_TRUE(ring_buffer_is_empty(&rb));
 }
 
-void test_push_until_full(void)
+void test_push_beyond_full_drops_oldest_value(void)
 {
     // Note that the capacity is one smaller, since we reserve one slot to determine if the buffer is full.
-    for (int i = 0; i < TEST_BUFFER_CAPACITY - 1; i++)
+    for (int i = 0; i < TEST_BUFFER_CAPACITY; i++)
     {
-        TEST_ASSERT_TRUE(ring_buffer_push(&rb, &i));
+        ring_buffer_push(&rb, &i);
     }
-    uint8_t item = 9;
-    TEST_ASSERT_FALSE(ring_buffer_push(&rb, &item));
+    uint8_t out = 0;
+    TEST_ASSERT_TRUE(ring_buffer_pop(&rb, &out));
+
+    // The queue should overflow by one, so the first number in the loop, 0, is dropped.
+    TEST_ASSERT_EQUAL(out, 1);
 }
 
 typedef struct
@@ -55,7 +58,7 @@ void test_struct_elements(void)
     ring_buffer_init(&event_rb, (uint8_t *)event_buffer, 8, sizeof(test_event_t));
 
     test_event_t in = {.type = 3, .payload = 42};
-    TEST_ASSERT_TRUE(ring_buffer_push(&event_rb, &in));
+    ring_buffer_push(&event_rb, &in);
 
     test_event_t out = {0};
     TEST_ASSERT_TRUE(ring_buffer_pop(&event_rb, &out));
@@ -69,7 +72,7 @@ int main(void)
 
     RUN_TEST(test_ring_buffer_is_empty_after_init);
     RUN_TEST(test_push_then_pop_then_empty);
-    RUN_TEST(test_push_until_full);
+    RUN_TEST(test_push_beyond_full_drops_oldest_value);
     RUN_TEST(test_struct_elements);
 
     return UNITY_END();

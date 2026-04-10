@@ -26,9 +26,9 @@ static RobotState robot_state;
 static StateEvent event_buffer[EVENT_BUFFER_SIZE] = {0};
 static RingBuffer event_queue = {0};
 
-bool state_event_push(StateEvent *event)
+void state_event_push(StateEvent *event)
 {
-    return ring_buffer_push(&event_queue, event);
+    ring_buffer_push(&event_queue, event);
 }
 
 static void state_enter(State new_state)
@@ -89,8 +89,14 @@ static void process_event(StateEvent event)
         if (robot_state.state == SEARCH || robot_state.state == ATTACK)
         {
             robot_state.state = RETREAT;
-            robot_state.retreat_direction =
-                (event.line == LINE_FRONT) ? REVERSE : FORWARD;
+            if (event.line == LINE_FRONT)
+            {
+                robot_state.retreat_direction = REVERSE;
+            }
+            else if (event.line == LINE_BACK)
+            {
+                robot_state.retreat_direction = FORWARD;
+            }
             state_enter(RETREAT);
         }
         break;
@@ -137,10 +143,9 @@ void state_machine_run(void)
         if (robot_state.timer != TIMER_RESET_VALUE && HAL_GetTick() >= robot_state.timer)
         {
             StateEvent timeout_event = {.type = EVT_TIMEOUT};
-            if (state_event_push(&timeout_event))
-            {
-                robot_state.timer = TIMER_RESET_VALUE;
-            }
+            state_event_push(&timeout_event);
+
+            robot_state.timer = TIMER_RESET_VALUE;
         }
         break;
     default:

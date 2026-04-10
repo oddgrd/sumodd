@@ -14,7 +14,7 @@ void ring_buffer_init(RingBuffer *rb, uint8_t *buffer, uint32_t capacity, uint32
 }
 
 // TODO: UNSAFE! Disable IRQ at start of function, restore after, to ensure single producer.
-bool ring_buffer_push(RingBuffer *rb, const void *item)
+void ring_buffer_push(RingBuffer *rb, const void *item)
 {
     uint32_t head = rb->head;
 
@@ -31,9 +31,10 @@ bool ring_buffer_push(RingBuffer *rb, const void *item)
     // be full, and accept writes again.
     uint32_t next_head = (head + 1) & (rb->capacity - 1);
 
-    if (next_head == rb->tail) // Full
+    // If the buffer is full, drop the oldest event by incrementing the tail.
+    if (next_head == rb->tail)
     {
-        return false; // Drop or handle overflow
+        rb->tail = (rb->tail + 1) & (rb->capacity - 1);
     }
 
     // TODO: consider compiler barrier? To ensure write happens before head advances in other ISR.
@@ -42,7 +43,6 @@ bool ring_buffer_push(RingBuffer *rb, const void *item)
     memcpy(&rb->data[head * rb->element_size], item, rb->element_size);
 
     rb->head = next_head;
-    return true;
 }
 
 // Called from main loop only
@@ -50,7 +50,7 @@ bool ring_buffer_pop(RingBuffer *rb, void *item)
 {
     uint32_t tail = rb->tail;
 
-    if (tail == rb->head) // Empty — head read once, safe
+    if (tail == rb->head)
     {
         return false;
     }

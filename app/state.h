@@ -38,7 +38,5 @@ void state_machine_run(void);
 
 /**
  * @brief Push a state event into the state machine event queue.
- *
- * @return true if the element was pushed, false if the buffer was full.
  */
-bool state_event_push(StateEvent *event);
+void state_event_push(StateEvent *event);

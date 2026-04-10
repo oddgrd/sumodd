@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 /**
- * @brief A circular buffer that disallows writes when full.
+ * @brief A circular buffer that drops the oldest value on push when full.
  *
  * The buffer accepts elements of any type, the size of which needs to be specified at
  * initialization. Data is then memcpy'ed in pop and push, based on the element size.
@@ -43,10 +43,8 @@ void ring_buffer_init(RingBuffer *rb, uint8_t *buffer, uint32_t capacity, uint32
  *
  * @param rb    Pointer to ring buffer.
  * @param data  Pointer to element to push.
- *
- * @return true if the element was pushed, false if the buffer was full.
  */
-bool ring_buffer_push(RingBuffer *rb, const void *element);
+void ring_buffer_push(RingBuffer *rb, const void *element);
 
 /**
  * @brief Pop an element from the ring buffer.
