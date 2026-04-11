@@ -42,19 +42,22 @@ void motor_driver_init();
  * @param nec_buffer  Output buffer for the decoded frame.
  */
 void motor_driver_start(void);
+
 /**
- * @brief Set the speed of the motor by adjusting the PWM duty cycle.
- *
- * TODO
+ * @brief Set the motor to drive forward at the given speed.
  *
  * @param speed  Speed in levels
  */
-void motor_driver_set_speed(MotorSpeed speed);
+void motor_forward(MotorSpeed speed);
+
 /**
- * @brief Control whether the motor should drive forward or in reverse.
+ * @brief Set the motor to reverse at the given speed.
  *
- * TODO
- *
- * @param direction  Direction of the motor.
+ * @param speed  Speed in levels
  */
-void motor_driver_set_direction(MotorDirection direction);
+void motor_reverse(MotorSpeed speed);
+
+/**
+ * @brief Stop all motors.
+ */
+void motor_stop(void);

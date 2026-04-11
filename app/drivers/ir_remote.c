@@ -4,9 +4,11 @@
 #include <stdio.h>
 
 #include "ir_remote.h"
+#include "ring_buffer.h"
 #include "state.h"
 #include "app_config.h"
 
+#define CMD_BUFFER_SIZE (8U)
 #define FINAL_PULSE 34U
 #define B1_PULSE_WIDTH_TICKS 1800U
 
@@ -16,6 +18,9 @@ static uint32_t raw_message = 0;
 
 static uint8_t pulse_count = 0;
 static uint16_t last = 0;
+
+static IrCommand cmd_buffer[CMD_BUFFER_SIZE] = {0};
+static RingBuffer cmd_queue = {0};
 
 /**
  * @brief TIM17 Initialization Function
@@ -141,20 +146,20 @@ static void nec_capture_isr(TIM_HandleTypeDef *htim)
     if (pulse_count == FINAL_PULSE)
     {
         NecxDecoded decoded = {0};
-        StateEvent event = {.type = EVT_IR_CMD, .line = IR_STOP};
 
         int ret = parse_necx(raw_message, &decoded);
+        IrCommand cmd = IR_NONE;
         if (ret == 0)
         {
             switch (decoded.cmd)
             {
             case 0x10:
-                event.ir_cmd = IR_START;
-                state_event_push(&event);
+                cmd = IR_START;
+                ring_buffer_push(&cmd_queue, &cmd);
                 break;
             case 0x11:
-                event.ir_cmd = IR_STOP;
-                state_event_push(&event);
+                cmd = IR_STOP;
+                ring_buffer_push(&cmd_queue, &cmd);
             default:
                 break;
             }
@@ -177,9 +182,19 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
     }
 }
 
+IrCommand ir_remote_get_cmd(void)
+{
+    IrCommand cmd = IR_NONE;
+
+    ring_buffer_pop(&cmd_queue, &cmd);
+
+    return cmd;
+}
+
 void ir_remote_init(void)
 {
     MX_TIM17_Init();
+    ring_buffer_init(&cmd_queue, (uint8_t *)cmd_buffer, CMD_BUFFER_SIZE, sizeof(IrCommand));
 
     if (HAL_TIM_IC_Start_IT(&htim17, TIM_CHANNEL_1) != HAL_OK)
     {

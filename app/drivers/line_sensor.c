@@ -11,7 +11,7 @@ ADC_HandleTypeDef hadc2;
 TIM_HandleTypeDef htim1;
 
 // Buffer for the ADC conversion value of all four channels, representing all four line sensors.
-uint16_t adc_buffer[4] = {0};
+static volatile uint16_t adc_buffer[4] = {0};
 
 /**
  * @brief ADC2 Initialization Function
@@ -145,6 +145,7 @@ static void MX_TIM1_Init(void)
     }
 }
 
+// TODO: disable interrupt during this call?
 LineType get_line(void)
 {
     // TODO: make more granular, right now we only act on front or back, we should also handle
@@ -160,33 +161,6 @@ LineType get_line(void)
     }
 
     return LINE_NONE;
-}
-
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
-{
-    if (hadc->Instance == ADC2)
-    {
-        // TODO: determine retreat direction based on value of all sensors, reverse if front
-        // two, ahead if back two, front right if back right, front left if back left, etc.
-        if (adc_buffer[1] < LINE_DETECTED_THRESHOLD)
-        {
-            StateEvent event = {.type = EVT_LINE_DETECTED, .line = LINE_FRONT};
-            state_event_push(&event);
-        }
-        // if (adc_buffer[1] < LINE_DETECTED_THRESHOLD)
-        // {
-        //     state_event_push(FRONT_RIGHT_EDGE_DETECTED);
-        // }
-        // if (adc_buffer[2] < LINE_DETECTED_THRESHOLD)
-        // {
-        //     state_event_push(FRONT_RIGHT_EDGE_DETECTED);
-        // }
-        if (adc_buffer[3] < LINE_DETECTED_THRESHOLD)
-        {
-            StateEvent event = {.type = EVT_LINE_DETECTED, .line = LINE_BACK};
-            state_event_push(&event);
-        }
-    }
 }
 
 void line_sensor_init(void)

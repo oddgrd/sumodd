@@ -17,9 +17,9 @@ typedef struct
     // Size of the element to store in bytes.
     uint32_t element_size;
     // Index to write to when pushing onto the queue.
-    uint32_t head;
+    volatile uint32_t head;
     // Index to read from when poping from the queue.
-    uint32_t tail;
+    volatile uint32_t tail;
 } RingBuffer;
 
 /**

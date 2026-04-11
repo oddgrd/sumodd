@@ -83,7 +83,7 @@ void motor_driver_set_direction(MotorDirection direction)
 // TODO: refactor to work for both motor drivers, left is CH4 and right is CH3, both motors on
 // each side will have the same speed, they use the same PWM channel, so the same CRR value to
 // adjust duty cycle.
-void motor_driver_set_speed(MotorSpeed speed)
+static void motor_driver_set_speed(MotorSpeed speed)
 {
     switch (speed)
     {
@@ -114,6 +114,24 @@ void motor_driver_set_speed(MotorSpeed speed)
         break;
     }
     // TODO: default for bad input
+}
+
+void motor_forward(MotorSpeed speed)
+{
+    motor_driver_set_direction(FORWARD);
+    motor_driver_set_speed(speed);
+}
+
+void motor_reverse(MotorSpeed speed)
+{
+    motor_driver_set_direction(REVERSE);
+    motor_driver_set_speed(speed);
+}
+
+void motor_stop(void)
+{
+    motor_driver_set_direction(STOP);
+    motor_driver_set_speed(OFF);
 }
 
 // TODO: refactor, make part of init?

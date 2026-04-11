@@ -17,8 +17,9 @@ typedef struct
 // TODO: don't use hardcoded values?
 typedef enum
 {
-    IR_START = 0x10,
-    IR_STOP = 0x11
+    IR_NONE,
+    IR_START, // 0x10
+    IR_STOP,  // 0x11
 } IrCommand;
 
 /**
@@ -27,6 +28,11 @@ typedef enum
  * Start the input capture timer peripheral, and initialize the interrupt handler.
  */
 void ir_remote_init(void);
+
+/**
+ * @brief Fetch an IR command from the IR remote queue, if any have been received.
+ */
+IrCommand ir_remote_get_cmd(void);
 
 /**
  * @brief Interrupt callback for input capture.

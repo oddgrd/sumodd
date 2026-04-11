@@ -5,14 +5,15 @@
 
 typedef enum
 {
-    STANDBY,
-    SEARCH,
-    ATTACK,
-    RETREAT
+    STATE_STANDBY,
+    STATE_SEARCH,
+    STATE_ATTACK,
+    STATE_RETREAT
 } State;
 
 typedef enum
 {
+    EVT_NONE,
     EVT_IR_CMD,
     EVT_ENEMY,
     EVT_LINE_DETECTED,

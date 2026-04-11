@@ -14,6 +14,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc);
 
 typedef enum
 {
+    LINE_NONE,
     LINE_FRONT,
     LINE_BACK,
     LINE_LEFT,
@@ -23,3 +24,5 @@ typedef enum
     LINE_BACK_LEFT,
     LINE_BACK_RIGHT,
 } LineType;
+
+LineType get_line(void);
