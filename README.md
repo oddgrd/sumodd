@@ -5,7 +5,9 @@
 To build the firmware:
 
 ```sh
-# See CMakePresets.json for other presets, including Release
+# First, generate the build directory. See CMakePresets.json for other presets, including Release.
+cmake --preset Debug
+# Compile the firmware.
 cmake --build --preset Debug
 ```
 
@@ -22,6 +24,11 @@ Reset the device with probe-rs:
 
 ```sh
 probe-rs reset --chip STM32F303K8Tx
+```
+
+To view logs sent over RTT in debug builds:
+```sh
+probe-rs attach --chip STM32F303K8TX build/Debug/sumo.elf
 ```
 
 Alternatively, you can convert the .elf file to an ARM binary, then flash with st-flash:

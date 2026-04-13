@@ -21,6 +21,11 @@ typedef enum
 } StateEventType;
 
 /**
+ * @brief Generate a string representation of the event type.
+ */
+const char *state_event_type_str(StateEventType t);
+
+/**
  * @brief The type of event, and associated context for the given event type.
  */
 typedef struct
@@ -33,8 +38,14 @@ typedef struct
     };
 } StateEvent;
 
-// TODO: doc comments
+/**
+ * @brief Initialize the state machine state.
+ */
 void state_machine_init(void);
+
+/**
+ * @brief Run a step in the state machine.
+ */
 void state_machine_run(void);
 
 /**

@@ -5,6 +5,7 @@
 #include "state.h"
 #include "drivers/line_sensor.h"
 #include "drivers/motor_driver.h"
+#include "debug.h"
 
 #define STATE_RETREAT_DURATION_MS (2000U)
 #define BLINK_INTERVAL_MS (500U)
@@ -14,6 +15,7 @@
 typedef struct
 {
     State state;
+    LineType last_line;
     uint32_t timer;
     MotorDirection retreat_direction;
     uint32_t last_blink_ms;
@@ -21,15 +23,34 @@ typedef struct
 
 static RobotState robot_state;
 
+const char *state_event_type_str(StateEventType type)
+{
+    switch (type)
+    {
+    case EVT_ENEMY:
+        return "ENEMY";
+    case EVT_IR_CMD:
+        return "IR CMD";
+    case EVT_LINE_DETECTED:
+        return "LINE DETECTED";
+    case EVT_TIMEOUT:
+        return "TIMEOUT";
+    case EVT_NONE:
+        return "NONE";
+    default:
+        return "UNKOWN";
+    }
+};
+
 static void state_enter(State new_state)
 {
     robot_state.state = new_state;
-    robot_state.timer = HAL_GetTick();
 
     switch (new_state)
     {
     case STATE_SEARCH:
-        // TODO: turn in place until target is acquired?
+        // TODO: spin in place is difficult with 4 wheels, implement scanning left and right in
+        // place.
         motor_forward(TURTLE);
         break;
     case STATE_ATTACK:
@@ -113,13 +134,19 @@ static StateEvent process_input(void)
         next_event.ir_cmd = cmd;
         return next_event;
     }
-    else if (line != LINE_NONE)
+
+    // TODO: extract this logic into a helper function
+    LineType previous_line = robot_state.last_line;
+    robot_state.last_line = line;
+
+    if (line != LINE_NONE && line != previous_line)
     {
         next_event.type = EVT_LINE_DETECTED;
         next_event.line = line;
         return next_event;
     }
-    else if (robot_state.timer != TIMER_RESET_VALUE && HAL_GetTick() >= robot_state.timer)
+
+    if (robot_state.timer != TIMER_RESET_VALUE && HAL_GetTick() >= robot_state.timer)
     {
         next_event.type = EVT_TIMEOUT;
         return next_event;
@@ -134,11 +161,17 @@ void state_machine_init(void)
     robot_state.last_blink_ms = 0;
     robot_state.retreat_direction = STOP;
     robot_state.state = STATE_STANDBY;
+    robot_state.last_line = LINE_NONE;
 }
 
 void state_machine_run(void)
 {
     StateEvent next_event = process_input();
+
+    if (next_event.type != EVT_NONE)
+    {
+        DEBUG_PRINTF("StateEvent type: %s\r\n", state_event_type_str(next_event.type));
+    }
 
     process_event(next_event);
 

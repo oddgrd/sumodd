@@ -1,12 +1,12 @@
 #include "main.h"
 #include <stdint.h>
 #include <inttypes.h>
-#include <stdio.h>
 
 #include "ir_remote.h"
 #include "ring_buffer.h"
 #include "state.h"
 #include "app_config.h"
+#include "debug.h"
 
 #define CMD_BUFFER_SIZE (8U)
 #define FINAL_PULSE 34U
@@ -166,7 +166,7 @@ static void nec_capture_isr(TIM_HandleTypeDef *htim)
         }
         else
         {
-            // TODO: print error when we have non-blocking UART logging in debug builds.
+            DEBUG_PRINTF("Failed to parse IR command\r\n");
         }
 
         raw_message = 0;

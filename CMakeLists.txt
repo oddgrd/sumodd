@@ -28,6 +28,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 project(${CMAKE_PROJECT_NAME})
 message("Build type: " ${CMAKE_BUILD_TYPE})
 
+if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/external/rtt/RTT/SEGGER_RTT.c)
+    message(FATAL_ERROR "RTT submodule not initialized. Run: git submodule update --init --recursive")
+endif()
+
 # Enable CMake support for ASM and C languages
 enable_language(C ASM)
 
@@ -59,6 +63,16 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/app
 )
 
+add_library(segger_rtt STATIC
+    external/rtt/RTT/SEGGER_RTT.c
+    external/rtt/RTT/SEGGER_RTT_printf.c
+)
+
+target_include_directories(segger_rtt PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/app/config
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/rtt/RTT
+)
+
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined symbols
@@ -72,4 +86,6 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
 
     # Add user defined libraries
+    segger_rtt
 )
+
