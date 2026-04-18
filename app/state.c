@@ -5,6 +5,7 @@
 #include "state.h"
 #include "drivers/line_sensor.h"
 #include "drivers/motor_driver.h"
+#include "ranging.h"
 #include "debug.h"
 
 #define STATE_RETREAT_DURATION_MS (2000U)

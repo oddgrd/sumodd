@@ -37,13 +37,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "main.h"
 #include "vl53l0x_platform.h"
 #include "vl53l0x_api.h"
+#include "ranging.h"
 
 /** Maximum buffer size to be used in i2c */
 #define VL53L0X_MAX_I2C_XFER_SIZE 64
-
-I2C_HandleTypeDef hi2c1;
-VL53L0X_Dev_t vl53l0x_dev;
-VL53L0X_DEV Dev = &vl53l0x_dev;
 
 /**
  * @brief I2C1 Initialization Function

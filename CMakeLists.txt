@@ -60,6 +60,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     app/drivers/vl53l0x/vl53l0x_api_strings.c
     app/state.c
     app/ring_buffer.c
+    app/ranging.c
 )
 
 # Add include paths

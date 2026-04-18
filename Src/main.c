@@ -29,7 +29,7 @@
 #include "drivers/line_sensor.h"
 #include "state.h"
 #include "stm32f303x8.h"
-#include "drivers/vl53l0x/vl53l0x_platform.h"
+#include "ranging.h"
 #include "drivers/vl53l0x/vl53l0x_api.h"
 #include "debug.h"
 /* USER CODE END Includes */
@@ -101,7 +101,12 @@ int main(void)
   /* USER CODE BEGIN 2 */
   ir_remote_init();
   line_sensor_init();
-  vl53l0x_init();
+  int ret = ranging_init();
+  if (ret != VL53L0X_ERROR_NONE)
+  {
+    DEBUG_PRINTF("Encountered an error during ranging init, error: %d\n", ret);
+    Error_Handler();
+  }
   motor_driver_init();
   motor_driver_start();
   /* USER CODE END 2 */
@@ -114,24 +119,24 @@ int main(void)
   VL53L0X_RangingMeasurementData_t RangingData;
   while (1)
   {
-    uint8_t dataReady = 0;
 
-    // Wait for data ready
-    while (!dataReady)
+    // Only retrieve range data if interrupt has been triggered.
+    if (ranging_state.sensor[RANGING_MIDDLE].data_ready)
     {
-      VL53L0X_GetMeasurementDataReady(Dev, &dataReady);
+      VL53L0X_GetRangingMeasurementData(&ranging_state.sensor[RANGING_MIDDLE].dev, &RangingData);
+
+      int16_t distance_mm = RangingData.RangeMilliMeter;
+
+      DEBUG_PRINTF("Distance: %d mm\n", distance_mm);
+      // Clear the interrupt so the next measurement can complete
+      VL53L0X_ClearInterruptMask(&ranging_state.sensor[RANGING_MIDDLE].dev, 0);
+
+      ranging_state.sensor[RANGING_MIDDLE].data_ready = false;
     }
 
-    VL53L0X_GetRangingMeasurementData(Dev, &RangingData);
-
-    int16_t distance_mm = RangingData.RangeMilliMeter;
-
-    DEBUG_PRINTF("Distance: %d mm\n", distance_mm);
-    // Clear the interrupt so the next measurement can complete
-    VL53L0X_ClearInterruptMask(Dev, 0);
     // state_machine_run();
     /* USER CODE END WHILE */
-    HAL_Delay(1000);
+    HAL_Delay(1);
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -274,7 +279,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : PB0 */
   GPIO_InitStruct.Pin = GPIO_PIN_0;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
@@ -306,11 +311,9 @@ void Error_Handler(void)
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
-  while (1)
-  {
-    HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3);
-    HAL_Delay(2000);
-  }
+
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_SET);
+  DEBUG_PRINTF("Encountered unrecoverable error.\n");
   /* USER CODE END Error_Handler_Debug */
 }
 #ifdef USE_FULL_ASSERT

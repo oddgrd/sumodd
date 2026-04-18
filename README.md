@@ -177,6 +177,10 @@ they will trigger an interrupt via the GPIO pin to an EXTI pin on the MCU when d
 will toggle a flag in the state machine, which will prompt it to request the latest data over I2C
 in the main loop.
 
+With fast mode I2C at 400KHz, reading from one sensor once the interrupt is triggered only takes
+4ms, whereas with 100KHz it took about 14ms. If we want to get this down further, we could consider
+I2C with DMA, but it is likely overkill.
+
 The driver was downloaded from ST: https://www.st.com/en/embedded-software/stsw-img005.html, which
 came with platform setup files (platform.c, i2c_platform.c) that were made for Windows, with Windows
 dynamic libraries included. We rewrote these to rather work with our STM32 HAL for I2C
