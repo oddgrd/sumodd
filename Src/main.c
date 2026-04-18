@@ -27,9 +27,11 @@
 #include "drivers/motor_driver.h"
 #include "drivers/ir_remote.h"
 #include "drivers/line_sensor.h"
-#include "drivers/vl53lox.h"
 #include "state.h"
 #include "stm32f303x8.h"
+#include "drivers/vl53l0x/vl53l0x_platform.h"
+#include "drivers/vl53l0x/vl53l0x_api.h"
+#include "debug.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -99,7 +101,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   ir_remote_init();
   line_sensor_init();
-  vl53lox_init();
+  vl53l0x_init();
   motor_driver_init();
   motor_driver_start();
   /* USER CODE END 2 */
@@ -107,10 +109,29 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   state_machine_init();
+  // TODO: remove ranging test code, make ranging module, refactor to support multiple sensors on
+  // same bus, do ranging in search state, re-enable state machine.
+  VL53L0X_RangingMeasurementData_t RangingData;
   while (1)
   {
-    state_machine_run();
+    uint8_t dataReady = 0;
+
+    // Wait for data ready
+    while (!dataReady)
+    {
+      VL53L0X_GetMeasurementDataReady(Dev, &dataReady);
+    }
+
+    VL53L0X_GetRangingMeasurementData(Dev, &RangingData);
+
+    int16_t distance_mm = RangingData.RangeMilliMeter;
+
+    DEBUG_PRINTF("Distance: %d mm\n", distance_mm);
+    // Clear the interrupt so the next measurement can complete
+    VL53L0X_ClearInterruptMask(Dev, 0);
+    // state_machine_run();
     /* USER CODE END WHILE */
+    HAL_Delay(1000);
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */

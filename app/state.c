@@ -51,7 +51,8 @@ static void state_enter(State new_state)
     case STATE_SEARCH:
         // TODO: spin in place is difficult with 4 wheels, implement scanning left and right in
         // place.
-        motor_forward(TURTLE);
+        // motor_forward(TURTLE);
+        motor_spin_left(HARE);
         break;
     case STATE_ATTACK:
         // TODO: set direction to bearing we determine from range sensors, shared in statemachine state.

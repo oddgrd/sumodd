@@ -70,6 +70,12 @@ void motor_driver_set_direction(MotorDirection direction)
         HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET);
         HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
         break;
+    case SPIN_LEFT:
+        HAL_GPIO_WritePin(GPIOF, GPIO_PIN_0, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(GPIOF, GPIO_PIN_1, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
+        break;
     case REVERSE:
         HAL_GPIO_WritePin(GPIOF, GPIO_PIN_0, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOF, GPIO_PIN_1, GPIO_PIN_SET);
@@ -125,6 +131,12 @@ void motor_forward(MotorSpeed speed)
 void motor_reverse(MotorSpeed speed)
 {
     motor_driver_set_direction(REVERSE);
+    motor_driver_set_speed(speed);
+}
+
+void motor_spin_left(MotorSpeed speed)
+{
+    motor_driver_set_direction(SPIN_LEFT);
     motor_driver_set_speed(speed);
 }
 

@@ -22,8 +22,9 @@ typedef enum
 typedef enum
 {
     STOP,
-    FORWARD, // Clockwise (CW)
-    REVERSE  // Counterclockwise (CCW)
+    FORWARD,   // Clockwise (CW)
+    REVERSE,   // Counterclockwise (CCW)
+    SPIN_LEFT, // Left wheels CW, right wheels CCW
 } MotorDirection;
 
 /**
@@ -57,6 +58,7 @@ void motor_forward(MotorSpeed speed);
  */
 void motor_reverse(MotorSpeed speed);
 
+void motor_spin_left(MotorSpeed speed);
 /**
  * @brief Stop all motors.
  */

@@ -150,15 +150,15 @@ LineType get_line(void)
 {
     // TODO: make more granular, right now we only act on front or back, we should also handle
     // corners, sides etc.
-    if (adc_buffer[0] < LINE_DETECTED_THRESHOLD || adc_buffer[1] < LINE_DETECTED_THRESHOLD)
-    {
-        return LINE_FRONT;
-    }
+    // if (adc_buffer[0] < LINE_DETECTED_THRESHOLD || adc_buffer[1] < LINE_DETECTED_THRESHOLD)
+    // {
+    //     return LINE_FRONT;
+    // }
 
-    if (adc_buffer[2] < LINE_DETECTED_THRESHOLD || adc_buffer[3] < LINE_DETECTED_THRESHOLD)
-    {
-        return LINE_BACK;
-    }
+    // if (adc_buffer[2] < LINE_DETECTED_THRESHOLD || adc_buffer[3] < LINE_DETECTED_THRESHOLD)
+    // {
+    //     return LINE_BACK;
+    // }
 
     return LINE_NONE;
 }

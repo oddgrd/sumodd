@@ -166,3 +166,24 @@ We could adjust the PCK, and set ARR to 100, so that we can easily adjust the du
 a change of 1% in voltage. At 1600 ARR, a change of 1 is a 0.0625% change in voltage, which gives us
 a lot smoother control of the motor. However, that level of control is likely not important for a
 sumo bot, so we may change it later.
+
+### Ranging sensors
+
+For detecting the distance to the enemy robot, we use three ST's VL53L0X sensors, mounted on
+Adafruit breakout boards. They connect to the MCU over I2C, in addition to a GPIO pin, for data
+ready interrupts, and an XSHUT pin, for reprogramming the I2C address so we can have multiple of
+the same sensor connecting on the same bus. The sensors are configured for continuous ranging, and
+they will trigger an interrupt via the GPIO pin to an EXTI pin on the MCU when data is ready. That
+will toggle a flag in the state machine, which will prompt it to request the latest data over I2C
+in the main loop.
+
+The driver was downloaded from ST: https://www.st.com/en/embedded-software/stsw-img005.html, which
+came with platform setup files (platform.c, i2c_platform.c) that were made for Windows, with Windows
+dynamic libraries included. We rewrote these to rather work with our STM32 HAL for I2C
+communication. The driver API is unaltered, but we wrap it in our own ranging API to make only the
+relevant parts available to the robot state machine.
+
+We may write our own driver in the future, since the ST one is quite large, more than doubling the
+firmware flash size. However, it is an advanced device with a lot of features, and it's poorly
+documented, there is no memory map in the datasheet, for example. This would have to be extracted
+from the driver if we were to create a driver.

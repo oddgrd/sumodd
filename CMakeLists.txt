@@ -52,7 +52,12 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     app/drivers/motor_driver.c
     app/drivers/ir_remote.c
     app/drivers/line_sensor.c
-    app/drivers/vl53lox.c
+    app/drivers/vl53l0x/vl53l0x_platform.c
+    app/drivers/vl53l0x/vl53l0x_api.c
+    app/drivers/vl53l0x/vl53l0x_api_calibration.c
+    app/drivers/vl53l0x/vl53l0x_api_core.c
+    app/drivers/vl53l0x/vl53l0x_api_ranging.c
+    app/drivers/vl53l0x/vl53l0x_api_strings.c
     app/state.c
     app/ring_buffer.c
 )
