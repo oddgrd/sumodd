@@ -3,10 +3,22 @@
 #include "ranging.h"
 #include "debug.h"
 
+// Default I2C address of the device, same for all sensors after reset.
 #define VL53L0X_DEFAULT_ADDRESS 0x52
+// I2C address we set for each device during the initialization of the device.
 #define RANGING_ADDR_LEFT 0x30
-#define RANGING_ADDR_MIDDLE 0x31
-#define RANGING_ADDR_RIGHT 0x32
+// #define RANGING_ADDR_MIDDLE 0x32
+#define RANGING_ADDR_RIGHT 0x34
+
+// We make the distance slightly larger than the 77CM max arena size to allow for inaccurate long
+// distance measurements.
+#define RANGING_MAX_DISTANCE_MM 850U
+#define RANGING_MIN_DISTANCE_MM 10U
+// Around 16ms (66Hz) is the lowest time supported by the device between measurements,
+// including the ranging setup and measurement itself, whereas 32ms is the optimal for
+// accuracy. We should consider a lower value here in the future, since we are only measuring
+// within the dohyo.
+#define RANGING_TIMING_BUDGET_US 32000U
 
 I2C_HandleTypeDef hi2c1;
 
@@ -14,16 +26,14 @@ typedef struct
 {
     GPIO_TypeDef *xshut_port;
     uint16_t xshut_pin;
-    // TODO: is it needed to have these here? We don't use them in interrupt.
-    GPIO_TypeDef *drdy_port;
-    uint16_t drdy_pin;
+    uint8_t device_address;
 } RangingConfig;
 
-// XSHUT and DRDY pin configurations for range sensors.
+// XSHUT pin and device address configurations for range sensors.
 static const RangingConfig ranging_config[RANGING_COUNT] = {
-    // [RANGING_LEFT] = {GPIOB, GPIO_PIN_1, GPIOB, GPIO_PIN_4},
-    [RANGING_MIDDLE] = {GPIOA, GPIO_PIN_8, GPIOB, GPIO_PIN_0},
-    // [RANGING_RIGHT] = {GPIOA, GPIO_PIN_11, GPIOA, GPIO_PIN_12},
+    [RANGING_LEFT] = {GPIOA, GPIO_PIN_11, RANGING_ADDR_LEFT},
+    // [RANGING_MIDDLE] = {GPIOA, GPIO_PIN_8, RANGING_ADDR_MIDDLE},
+    [RANGING_RIGHT] = {GPIOB, GPIO_PIN_1, RANGING_ADDR_RIGHT},
 };
 
 RangingState ranging_state = {0};
@@ -65,6 +75,71 @@ static void MX_I2C1_Init(void)
     }
 }
 
+// TODO: consider whether we should return any error from this, or simply log and continue, in case
+// some sensors fail, but not all.
+void ranging_update(void)
+{
+    VL53L0X_RangingMeasurementData_t RangingData = {0};
+
+    for (int i = 0; i < RANGING_COUNT; i++)
+    {
+        if (ranging_state.sensor[i].data_ready)
+        {
+            // TODO: debug log more ranging data to inspect it.
+            int ret = VL53L0X_GetRangingMeasurementData(&ranging_state.sensor[i].dev, &RangingData);
+            if (ret != VL53L0X_ERROR_NONE)
+            {
+                DEBUG_PRINTF("Failed to get ranging data for sensor: %d, error: %d\n", i, ret);
+            };
+
+            int16_t distance_mm = RangingData.RangeMilliMeter;
+
+            ranging_state.sensor[i].range_mm = distance_mm;
+            ranging_state.sensor[i].range_status = RangingData.RangeStatus;
+
+            DEBUG_PRINTF(
+                "Distance: %d mm, status: %d, max: %d, device: %x\n",
+                distance_mm,
+                RangingData.RangeStatus,
+                RangingData.RangeDMaxMilliMeter,
+                ranging_state.sensor[i].dev.I2cDevAddr);
+
+            ranging_state.sensor[i].data_ready = false;
+
+            // Clear the interrupt so the next measurement can complete
+            ret = VL53L0X_ClearInterruptMask(&ranging_state.sensor[i].dev, 0);
+            if (ret != VL53L0X_ERROR_NONE)
+            {
+                DEBUG_PRINTF("Failed to clear interrupt mask for sensor: %d, error: %d\n", i, ret);
+            };
+        }
+    }
+
+    // DEBUG_PRINTF("l: %d\nr:%d\n", ranging_state.sensor[RANGING_LEFT].range_mm, ranging_state.sensor[RANGING_RIGHT].range_mm);
+}
+
+Enemy ranging_get_enemy(void)
+{
+    Enemy enemy = {.bearing = BEARING_NONE};
+
+    // TODO: also check ranging status? We will  get not-null for bad readings, e.g. max distance
+    // due to looking into space, e.g:
+    // 13:12:16.418: Distance: 8190 mm, status: 4, max: 1167
+    // 13:12:16.418: Distance: 8191 mm, status: 2, max: 1169
+    // bool enemy_middle =
+    //     ranging_state.sensor[RANGING_MIDDLE].range_mm < RANGING_MAX_DISTANCE_MM &&
+    //     ranging_state.sensor[RANGING_MIDDLE].range_mm > RANGING_MIN_DISTANCE_MM;
+
+    // // TODO: determine bearing on ranging of all three sensors, not just middle.
+    // if (enemy_middle)
+    // {
+    //     enemy.bearing = BEARING_FRONT;
+    //     enemy.distance_mm = ranging_state.sensor[RANGING_MIDDLE].range_mm;
+    // }
+
+    return enemy;
+}
+
 VL53L0X_Error ranging_init(void)
 {
     MX_I2C1_Init();
@@ -81,10 +156,10 @@ VL53L0X_Error ranging_init(void)
     HAL_Delay(10);
     int ret = VL53L0X_ERROR_NONE;
 
-    // TODO: add other addresses once in use.
-    uint8_t addresses[RANGING_COUNT] = {RANGING_ADDR_MIDDLE};
     for (int i = 0; i < RANGING_COUNT; i++)
     {
+        DEBUG_PRINTF("Initializing device with address: %x\n", ranging_config[i].device_address);
+
         // First, set the xshut of the sensor we are configuring high.
         HAL_GPIO_WritePin(ranging_state.sensor[i].xshut_port, ranging_state.sensor[i].xshut_pin, GPIO_PIN_SET);
         HAL_Delay(2);
@@ -93,15 +168,15 @@ VL53L0X_Error ranging_init(void)
         // all the devices after the reset.
         ranging_state.sensor[i].dev.I2cDevAddr = VL53L0X_DEFAULT_ADDRESS;
 
-        ret = VL53L0X_SetDeviceAddress(&ranging_state.sensor[i].dev, addresses[i]);
+        ret = VL53L0X_SetDeviceAddress(&ranging_state.sensor[i].dev, ranging_config[i].device_address);
         if (ret != VL53L0X_ERROR_NONE)
         {
             DEBUG_PRINTF("Failed to set device address for device, error: %d\n", ret);
             return ret;
         };
 
-        // Change the devices address to the new address, we will use that from here on out.
-        ranging_state.sensor[i].dev.I2cDevAddr = addresses[i];
+        // Change the device instance address to the new address, we will use that from here on out.
+        ranging_state.sensor[i].dev.I2cDevAddr = ranging_config[i].device_address;
 
         ret = VL53L0X_DataInit(&ranging_state.sensor[i].dev);
         if (ret != VL53L0X_ERROR_NONE)
@@ -117,7 +192,8 @@ VL53L0X_Error ranging_init(void)
             return ret;
         };
 
-        uint8_t VhvSettings, PhaseCal;
+        uint8_t VhvSettings = 0;
+        uint8_t PhaseCal = 0;
         ret = VL53L0X_PerformRefCalibration(&ranging_state.sensor[i].dev, &VhvSettings, &PhaseCal);
         if (ret != VL53L0X_ERROR_NONE)
         {
@@ -125,15 +201,22 @@ VL53L0X_Error ranging_init(void)
             return ret;
         };
 
-        // TODO: document spad management.
-        uint32_t refSpadCount;
-        uint8_t isApertureSpads;
+        // Load SPAD (Single Photon Avalanche Diode) calibration data, needs to be done after each
+        // reset. This is an array of diodes that are used for detecting the reflected IR light
+        // emitted from the VCSEL (vertical-cavity surface-emitting laser).
+        uint32_t refSpadCount = 0;
+        uint8_t isApertureSpads = 0;
         ret = VL53L0X_PerformRefSpadManagement(&ranging_state.sensor[i].dev, &refSpadCount, &isApertureSpads);
         if (ret != VL53L0X_ERROR_NONE)
         {
             DEBUG_PRINTF("Failed to perform spad management for device, error: %d\n", ret);
             return ret;
         };
+
+        DEBUG_PRINTF(
+            "Initialized sensor with spad count: %d, aperture spads enabled: %d\n",
+            refSpadCount,
+            isApertureSpads);
 
         ret = VL53L0X_SetDeviceMode(&ranging_state.sensor[i].dev, VL53L0X_DEVICEMODE_CONTINUOUS_RANGING);
         if (ret != VL53L0X_ERROR_NONE)
@@ -142,9 +225,7 @@ VL53L0X_Error ranging_init(void)
             return ret;
         };
 
-        // Around 18ms (55Hz) is the lowest time supported by the device between measurements, and since
-        // we are working with short ranges, we'll use the fastest, at the cost of some accuracy.
-        ret = VL53L0X_SetMeasurementTimingBudgetMicroSeconds(&ranging_state.sensor[i].dev, 20000);
+        ret = VL53L0X_SetMeasurementTimingBudgetMicroSeconds(&ranging_state.sensor[i].dev, RANGING_TIMING_BUDGET_US);
         if (ret != VL53L0X_ERROR_NONE)
         {
             DEBUG_PRINTF("Failed to set measurement timing budget for device, error: %d\n", ret);
@@ -162,7 +243,10 @@ VL53L0X_Error ranging_init(void)
             DEBUG_PRINTF("Failed to configure gpio pin for device, error: %d\n", ret);
             return ret;
         };
+    }
 
+    for (int i = 0; i < RANGING_COUNT; i++)
+    {
         ret = VL53L0X_StartMeasurement(&ranging_state.sensor[i].dev);
         if (ret != VL53L0X_ERROR_NONE)
         {
@@ -172,14 +256,21 @@ VL53L0X_Error ranging_init(void)
     }
 
     return ret;
-};
+}
 
+// VL53L0X data ready interrupt ISR. Set flag to read from I2C in main loop.
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-    if (GPIO_Pin == GPIO_PIN_0)
+    if (GPIO_Pin == GPIO_PIN_4)
     {
-        // VL53L0X data ready interrupt triggered. Set flag to read from I2C in main loop.
-        ranging_state.sensor[RANGING_MIDDLE].data_ready = true;
+        ranging_state.sensor[RANGING_LEFT].data_ready = true;
     }
-    // TODO: add other sensors EXTI pins.
+    // if (GPIO_Pin == GPIO_PIN_0)
+    // {
+    //     ranging_state.sensor[RANGING_MIDDLE].data_ready = true;
+    // }
+    if (GPIO_Pin == GPIO_PIN_12)
+    {
+        ranging_state.sensor[RANGING_RIGHT].data_ready = true;
+    }
 }

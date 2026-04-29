@@ -42,42 +42,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** Maximum buffer size to be used in i2c */
 #define VL53L0X_MAX_I2C_XFER_SIZE 64
 
-/**
- * @brief I2C1 Initialization Function
- * @param None
- * @retval None
- */
-static void MX_I2C1_Init(void)
-{
-    hi2c1.Instance = I2C1;
-    hi2c1.Init.Timing = 0x00201D2B;
-    hi2c1.Init.OwnAddress1 = 0;
-    hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-    hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-    hi2c1.Init.OwnAddress2 = 0;
-    hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
-    hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-    hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-    if (HAL_I2C_Init(&hi2c1) != HAL_OK)
-    {
-        Error_Handler();
-    }
-
-    /** Configure Analogue filter
-     */
-    if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
-    {
-        Error_Handler();
-    }
-
-    /** Configure Digital filter
-     */
-    if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
-    {
-        Error_Handler();
-    }
-}
-
 VL53L0X_Error VL53L0X_LockSequenceAccess(VL53L0X_DEV Dev)
 {
     VL53L0X_Error Status = VL53L0X_ERROR_NONE;
@@ -224,37 +188,4 @@ VL53L0X_Error VL53L0X_PollingDelay(VL53L0X_DEV Dev)
 {
     HAL_Delay(1);
     return VL53L0X_ERROR_NONE;
-}
-
-void vl53l0x_init(void)
-{
-    MX_I2C1_Init();
-
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
-    HAL_Delay(2);
-    Dev->I2cDevAddr = 0x52;
-
-    // 1. Data init
-    VL53L0X_DataInit(Dev);
-
-    // 2. Static init (loads device settings)
-    VL53L0X_StaticInit(Dev);
-
-    // 3. Reference calibration
-    uint8_t VhvSettings, PhaseCal;
-    VL53L0X_PerformRefCalibration(Dev, &VhvSettings, &PhaseCal);
-
-    // 4. Reference SPAD calibration
-    uint32_t refSpadCount;
-    uint8_t isApertureSpads;
-    VL53L0X_PerformRefSpadManagement(Dev, &refSpadCount, &isApertureSpads);
-
-    // 5. Set the measurement mode
-    VL53L0X_SetDeviceMode(Dev, VL53L0X_DEVICEMODE_CONTINUOUS_RANGING);
-
-    // 6. Set timing budget (e.g., 33ms)
-    VL53L0X_SetMeasurementTimingBudgetMicroSeconds(Dev, 33000);
-
-    // 7. Start ranging
-    VL53L0X_StartMeasurement(Dev);
 }

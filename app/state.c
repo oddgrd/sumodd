@@ -17,6 +17,7 @@ typedef struct
 {
     State state;
     LineType last_line;
+    Enemy last_enemy;
     uint32_t timer;
     MotorDirection retreat_direction;
     uint32_t last_blink_ms;
@@ -50,13 +51,12 @@ static void state_enter(State new_state)
     switch (new_state)
     {
     case STATE_SEARCH:
-        // TODO: spin in place is difficult with 4 wheels, implement scanning left and right in
-        // place.
+        // TODO: spin left and then right on a short timer.
         // motor_forward(TURTLE);
-        motor_spin_left(HARE);
+        // motor_spin_left(HARE);
         break;
     case STATE_ATTACK:
-        // TODO: set direction to bearing we determine from range sensors, shared in statemachine state.
+        // TODO: turn towards enemy, tracking it, don't drive towards it yet.
         motor_forward(TURTLE);
         break;
     case STATE_RETREAT:
@@ -94,6 +94,7 @@ static void process_event(StateEvent event)
         }
         break;
     case EVT_ENEMY:
+        // TODO: enter attack state
         break;
     case EVT_LINE_DETECTED:
         if (robot_state.state == STATE_SEARCH || robot_state.state == STATE_ATTACK)
@@ -127,6 +128,7 @@ static StateEvent process_input(void)
 {
     IrCommand cmd = ir_remote_get_cmd();
     LineType line = get_line();
+    Enemy enemy = ranging_get_enemy();
 
     StateEvent next_event = {.type = EVT_NONE};
 
@@ -138,6 +140,9 @@ static StateEvent process_input(void)
     }
 
     // TODO: extract this logic into a helper function
+    // Only emit a line event if it is not NONE, and it is not the same as the previous line
+    // detected. We still set the line in the state here, so that if it goes from e.g. LINE_FRONT
+    // to LINE_NONE, it is recorded, even though the conditional below excludes LINE_NONE.
     LineType previous_line = robot_state.last_line;
     robot_state.last_line = line;
 
@@ -148,12 +153,21 @@ static StateEvent process_input(void)
         return next_event;
     }
 
+    Enemy previous_enemy = robot_state.last_enemy;
+    robot_state.last_enemy = enemy;
+    if (enemy.bearing != BEARING_NONE && enemy.bearing != previous_enemy.bearing)
+    {
+        next_event.type = EVT_ENEMY;
+        next_event.enemy = enemy;
+        return next_event;
+    }
+
+    // TODO: consider when we want to reset timer
     if (robot_state.timer != TIMER_RESET_VALUE && HAL_GetTick() >= robot_state.timer)
     {
         next_event.type = EVT_TIMEOUT;
         return next_event;
     }
-    // else if enemy detected
     return next_event;
 }
 
@@ -185,6 +199,9 @@ void state_machine_run(void)
             robot_state.last_blink_ms = HAL_GetTick();
             HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3);
         }
+        break;
+    case STATE_SEARCH:
+        ranging_update();
         break;
     default:
         break;

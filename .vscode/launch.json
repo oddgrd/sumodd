@@ -7,7 +7,7 @@
             "name": "sumo probe_rs debug launch config",
             "cwd": "${workspaceFolder}",
             "speed": 4600,
-            "probe": "0483:374b:0669FF485652867187144158",
+            "probe": "0483:374b:0672FF505682884967023307",
             "runtimeExecutable": "probe-rs",
             "runtimeArgs": [
                 "dap-server"

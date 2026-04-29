@@ -114,29 +114,12 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   state_machine_init();
-  // TODO: remove ranging test code, make ranging module, refactor to support multiple sensors on
-  // same bus, do ranging in search state, re-enable state machine.
-  VL53L0X_RangingMeasurementData_t RangingData;
   while (1)
   {
-
-    // Only retrieve range data if interrupt has been triggered.
-    if (ranging_state.sensor[RANGING_MIDDLE].data_ready)
-    {
-      VL53L0X_GetRangingMeasurementData(&ranging_state.sensor[RANGING_MIDDLE].dev, &RangingData);
-
-      int16_t distance_mm = RangingData.RangeMilliMeter;
-
-      DEBUG_PRINTF("Distance: %d mm\n", distance_mm);
-      // Clear the interrupt so the next measurement can complete
-      VL53L0X_ClearInterruptMask(&ranging_state.sensor[RANGING_MIDDLE].dev, 0);
-
-      ranging_state.sensor[RANGING_MIDDLE].data_ready = false;
-    }
-
-    // state_machine_run();
+    state_machine_run();
+    HAL_Delay(100);
     /* USER CODE END WHILE */
-    HAL_Delay(1);
+
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -277,8 +260,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PB0 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0;
+  /*Configure GPIO pins : PB0 PB4 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_4;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
@@ -290,9 +273,21 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : PA12 */
+  GPIO_InitStruct.Pin = GPIO_PIN_12;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI4_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI4_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 

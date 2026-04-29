@@ -31,7 +31,16 @@ To view logs sent over RTT in debug builds:
 probe-rs attach --chip STM32F303K8TX build/Debug/sumo.elf
 ```
 
-Alternatively, you can convert the .elf file to an ARM binary, then flash with st-flash:
+To debug, run the VSCode debugger with the included .vscode/launch.json, but first update the
+serial number of the device in configurations[0].probe to your nucleo debugger serial number,
+which you can get with:
+
+```sh
+probe-rs list
+```
+
+If you don't want to use probe-rs, you can convert the .elf file to an ARM binary, then flash with
+st-flash:
 
 ```sh
 # Create the binary
@@ -177,9 +186,9 @@ they will trigger an interrupt via the GPIO pin to an EXTI pin on the MCU when d
 will toggle a flag in the state machine, which will prompt it to request the latest data over I2C
 in the main loop.
 
-With fast mode I2C at 400KHz, reading from one sensor once the interrupt is triggered only takes
-4ms, whereas with 100KHz it took about 14ms. If we want to get this down further, we could consider
-I2C with DMA, but it is likely overkill.
+With fast mode I2C at 400KHz (which is the max I2C clock frequency for the Vl53L0X), reading from
+one sensor once the interrupt is triggered only takes 4ms, whereas with 100KHz it took about 14ms.
+If we want to get this down further, we could consider I2C with DMA, but it is likely overkill.
 
 The driver was downloaded from ST: https://www.st.com/en/embedded-software/stsw-img005.html, which
 came with platform setup files (platform.c, i2c_platform.c) that were made for Windows, with Windows

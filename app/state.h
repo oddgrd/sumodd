@@ -2,6 +2,7 @@
 
 #include "drivers/ir_remote.h"
 #include "drivers/line_sensor.h"
+#include "ranging.h"
 
 typedef enum
 {
@@ -35,6 +36,7 @@ typedef struct
     {
         LineType line;
         IrCommand ir_cmd;
+        Enemy enemy;
     };
 } StateEvent;
 

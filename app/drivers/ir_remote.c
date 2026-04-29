@@ -166,7 +166,7 @@ static void nec_capture_isr(TIM_HandleTypeDef *htim)
         }
         else
         {
-            DEBUG_PRINTF("Failed to parse IR command\r\n");
+            DEBUG_PRINTF("Failed to parse IR command, raw message %d\r\n", raw_message);
         }
 
         raw_message = 0;

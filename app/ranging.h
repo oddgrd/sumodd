@@ -10,9 +10,9 @@ extern I2C_HandleTypeDef hi2c1;
 
 typedef enum
 {
-    // RANGING_LEFT = 0,
-    RANGING_MIDDLE = 0,
-    // RANGING_RIGHT,
+    RANGING_LEFT = 0,
+    // RANGING_MIDDLE,
+    RANGING_RIGHT,
     RANGING_COUNT
 } RangingSensor;
 
@@ -32,7 +32,28 @@ typedef struct
 } RangingState;
 extern RangingState ranging_state;
 
+// TODO: bearings where the opponent is detected on both sensors, but at significantly different
+// ranges, indicating the opponent is at an angle, and we may want to adjust our approach.
+typedef enum
+{
+    BEARING_NONE,
+    BEARING_FRONT,
+    BEARING_LEFT,
+    BEARING_RIGHT
+} EnemyBearing;
+
+typedef struct
+{
+    EnemyBearing bearing;
+    uint16_t distance_mm;
+} Enemy;
+
 // TODO: document this function.
 // TODO: pass pointer to statemachine ranging state? Or just keep bearing in statemachine, leave
 // the details in here, behind api?
 VL53L0X_Error ranging_init(void);
+
+// TODO: document this function.
+void ranging_update(void);
+
+Enemy ranging_get_enemy(void);
