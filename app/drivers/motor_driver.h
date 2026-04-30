@@ -3,28 +3,16 @@
 #include <stdint.h>
 
 /**
- * @brief Speed of the motor.
- *
- */
-typedef enum
-{
-    OFF,    // 0%
-    TURTLE, // 25%
-    HUMAN,  // 50%
-    HARE,   // 75%
-    JAGUAR  // 100%
-} MotorSpeed;
-
-/**
  * @brief Direction of the motor.
  *
  */
 typedef enum
 {
     STOP,
-    FORWARD,   // Clockwise (CW)
-    REVERSE,   // Counterclockwise (CCW)
-    SPIN_LEFT, // Left wheels CW, right wheels CCW
+    FORWARD,    // Clockwise (CW)
+    REVERSE,    // Counterclockwise (CCW)
+    SPIN_LEFT,  // Left wheel CW, right wheel CCW
+    SPIN_RIGHT, // Right wheel CW, left wheel CCW
 } MotorDirection;
 
 /**
@@ -49,16 +37,29 @@ void motor_driver_start(void);
  *
  * @param speed  Speed in levels
  */
-void motor_forward(MotorSpeed speed);
+void motor_forward(uint8_t speed);
 
 /**
  * @brief Set the motor to reverse at the given speed.
  *
  * @param speed  Speed in levels
  */
-void motor_reverse(MotorSpeed speed);
+void motor_reverse(uint8_t speed);
 
-void motor_spin_left(MotorSpeed speed);
+/**
+ * @brief Set the motor to spin left at the given speed.
+ *
+ * @param speed  Speed in levels
+ */
+void motor_spin_left(uint8_t speed);
+
+/**
+ * @brief Set the motor to spin right at the given speed.
+ *
+ * @param speed  Speed in levels
+ */
+void motor_spin_right(uint8_t speed);
+
 /**
  * @brief Stop all motors.
  */

@@ -52,22 +52,31 @@ static void state_enter(State new_state)
     {
     case STATE_SEARCH:
         // TODO: spin left and then right on a short timer.
-        // motor_forward(TURTLE);
-        // motor_spin_left(HARE);
+        motor_stop();
         break;
     case STATE_ATTACK:
-        // TODO: turn towards enemy, tracking it, don't drive towards it yet.
-        motor_forward(TURTLE);
+        if (robot_state.last_enemy.bearing == BEARING_FRONT || robot_state.last_enemy.bearing == BEARING_NONE)
+        {
+            motor_stop();
+        }
+        else if (robot_state.last_enemy.bearing == BEARING_LEFT)
+        {
+            motor_spin_left(25);
+        }
+        else if (robot_state.last_enemy.bearing == BEARING_RIGHT)
+        {
+            motor_spin_right(25);
+        }
         break;
     case STATE_RETREAT:
         robot_state.timer = HAL_GetTick() + STATE_RETREAT_DURATION_MS;
         if (robot_state.retreat_direction == REVERSE)
         {
-            motor_reverse(TURTLE);
+            motor_reverse(25);
         }
         else
         {
-            motor_forward(TURTLE);
+            motor_forward(25);
         }
         break;
     case STATE_STANDBY:
@@ -94,7 +103,14 @@ static void process_event(StateEvent event)
         }
         break;
     case EVT_ENEMY:
-        // TODO: enter attack state
+        if (event.enemy.bearing == BEARING_NONE)
+        {
+            state_enter(STATE_SEARCH);
+        }
+        else
+        {
+            state_enter(STATE_ATTACK);
+        }
         break;
     case EVT_LINE_DETECTED:
         if (robot_state.state == STATE_SEARCH || robot_state.state == STATE_ATTACK)
@@ -130,6 +146,11 @@ static StateEvent process_input(void)
     LineType line = get_line();
     Enemy enemy = ranging_get_enemy();
 
+    if (robot_state.state == STATE_SEARCH || robot_state.state == STATE_ATTACK)
+    {
+        DEBUG_PRINTF("Enemy bearing: %d, distance: %dmm, state: %d\n", enemy.bearing, enemy.distance_mm, robot_state.state);
+    }
+
     StateEvent next_event = {.type = EVT_NONE};
 
     if (cmd != IR_NONE)
@@ -153,12 +174,11 @@ static StateEvent process_input(void)
         return next_event;
     }
 
-    Enemy previous_enemy = robot_state.last_enemy;
-    robot_state.last_enemy = enemy;
-    if (enemy.bearing != BEARING_NONE && enemy.bearing != previous_enemy.bearing)
+    if (enemy.bearing != robot_state.last_enemy.bearing)
     {
         next_event.type = EVT_ENEMY;
         next_event.enemy = enemy;
+        robot_state.last_enemy = enemy;
         return next_event;
     }
 
@@ -201,6 +221,7 @@ void state_machine_run(void)
         }
         break;
     case STATE_SEARCH:
+    case STATE_ATTACK:
         ranging_update();
         break;
     default:

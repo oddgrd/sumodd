@@ -117,7 +117,7 @@ int main(void)
   while (1)
   {
     state_machine_run();
-    HAL_Delay(100);
+    // HAL_Delay(100);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

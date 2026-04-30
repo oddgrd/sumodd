@@ -1,6 +1,7 @@
 #include "main.h"
 
 #include "motor_driver.h"
+#include "debug.h"
 
 // Handle to the TIM2 peripheral used for motor controller PWM.
 TIM_HandleTypeDef htim2;
@@ -17,13 +18,13 @@ static void MX_TIM2_Init(void)
      * With the system clock running at 64MHz, we configure the period and prescaler to arrive at
      * 20KHz frequency:
      * f_PWM = f_TIM / ((PSC + 1)(ARR + 1))
-     * f_PWM = 64MHz / (2 * 1600)
+     * f_PWM = 64MHz / (32 * 100)
      * f_PWM = 20KHz
      */
     htim2.Instance = TIM2;
-    htim2.Init.Prescaler = 1;
+    htim2.Init.Prescaler = 31;
     htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim2.Init.Period = 1600 - 1; // 0..=1599
+    htim2.Init.Period = 100 - 1; // 0..=99
     htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
     if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
@@ -71,10 +72,16 @@ void motor_driver_set_direction(MotorDirection direction)
         HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
         break;
     case SPIN_LEFT:
-        HAL_GPIO_WritePin(GPIOF, GPIO_PIN_0, GPIO_PIN_SET);
-        HAL_GPIO_WritePin(GPIOF, GPIO_PIN_1, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOF, GPIO_PIN_0, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOF, GPIO_PIN_1, GPIO_PIN_SET); // CCW
         HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET); // CW
+        break;
+    case SPIN_RIGHT:
+        HAL_GPIO_WritePin(GPIOF, GPIO_PIN_0, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(GPIOF, GPIO_PIN_1, GPIO_PIN_RESET); // CW
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET); // CCW
         break;
     case REVERSE:
         HAL_GPIO_WritePin(GPIOF, GPIO_PIN_0, GPIO_PIN_RESET);
@@ -86,64 +93,47 @@ void motor_driver_set_direction(MotorDirection direction)
     // TODO: default for bad input
 }
 
-// TODO: refactor to work for both motor drivers, left is CH4 and right is CH3, both motors on
-// each side will have the same speed, they use the same PWM channel, so the same CRR value to
-// adjust duty cycle.
-static void motor_driver_set_speed(MotorSpeed speed)
+// TODO: assert that number is within 0-99 range, and/or use a newtype if possible.
+// TODO: make each motor's speed individually configurable.
+static void motor_driver_set_speed(uint8_t speed)
 {
-    switch (speed)
+    if (speed > 99 || speed < 0)
     {
-    case OFF:
-        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, 0);
-        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, 0);
-
-        break;
-    case TURTLE:
-        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, 400);
-        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, 400);
-
-        break;
-    case HUMAN:
-        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, 800);
-        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, 800);
-
-        break;
-    case HARE:
-        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, 1200);
-        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, 1200);
-
-        break;
-    case JAGUAR:
-        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, 1599);
-        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, 1599);
-
-        break;
+        DEBUG_PRINTF("Speed should be between 0 and 99, received: %d", speed);
+        return;
     }
-    // TODO: default for bad input
+    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, speed);
+    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, speed);
 }
 
-void motor_forward(MotorSpeed speed)
+void motor_forward(uint8_t speed)
 {
     motor_driver_set_direction(FORWARD);
     motor_driver_set_speed(speed);
 }
 
-void motor_reverse(MotorSpeed speed)
+void motor_reverse(uint8_t speed)
 {
     motor_driver_set_direction(REVERSE);
     motor_driver_set_speed(speed);
 }
 
-void motor_spin_left(MotorSpeed speed)
+void motor_spin_left(uint8_t speed)
 {
     motor_driver_set_direction(SPIN_LEFT);
+    motor_driver_set_speed(speed);
+}
+
+void motor_spin_right(uint8_t speed)
+{
+    motor_driver_set_direction(SPIN_RIGHT);
     motor_driver_set_speed(speed);
 }
 
 void motor_stop(void)
 {
     motor_driver_set_direction(STOP);
-    motor_driver_set_speed(OFF);
+    motor_driver_set_speed(0);
 }
 
 // TODO: refactor, make part of init?

@@ -2,6 +2,9 @@
 
 ## Development
 
+> IMPORTANT: When the device is powered by battery, and you also want to connect USB for debugging,
+> the BATTERY MUST BE CONNECTED FIRST to ensure it is used for powering the device.
+
 To build the firmware:
 
 ```sh

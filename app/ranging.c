@@ -12,13 +12,13 @@
 
 // We make the distance slightly larger than the 77CM max arena size to allow for inaccurate long
 // distance measurements.
-#define RANGING_MAX_DISTANCE_MM 850U
+#define RANGING_MAX_DISTANCE_MM 150U
 #define RANGING_MIN_DISTANCE_MM 10U
 // Around 16ms (66Hz) is the lowest time supported by the device between measurements,
 // including the ranging setup and measurement itself, whereas 32ms is the optimal for
 // accuracy. We should consider a lower value here in the future, since we are only measuring
 // within the dohyo.
-#define RANGING_TIMING_BUDGET_US 32000U
+#define RANGING_TIMING_BUDGET_US 20000U
 
 I2C_HandleTypeDef hi2c1;
 
@@ -97,12 +97,12 @@ void ranging_update(void)
             ranging_state.sensor[i].range_mm = distance_mm;
             ranging_state.sensor[i].range_status = RangingData.RangeStatus;
 
-            DEBUG_PRINTF(
-                "Distance: %d mm, status: %d, max: %d, device: %x\n",
-                distance_mm,
-                RangingData.RangeStatus,
-                RangingData.RangeDMaxMilliMeter,
-                ranging_state.sensor[i].dev.I2cDevAddr);
+            // DEBUG_PRINTF(
+            //     "Distance: %d mm, status: %d, max: %d, device: %x\n",
+            //     distance_mm,
+            //     RangingData.RangeStatus,
+            //     RangingData.RangeDMaxMilliMeter,
+            //     ranging_state.sensor[i].dev.I2cDevAddr);
 
             ranging_state.sensor[i].data_ready = false;
 
@@ -118,6 +118,11 @@ void ranging_update(void)
     // DEBUG_PRINTF("l: %d\nr:%d\n", ranging_state.sensor[RANGING_LEFT].range_mm, ranging_state.sensor[RANGING_RIGHT].range_mm);
 }
 
+bool valid_range(int16_t range_mm)
+{
+    return range_mm < RANGING_MAX_DISTANCE_MM && range_mm > RANGING_MIN_DISTANCE_MM;
+}
+
 Enemy ranging_get_enemy(void)
 {
     Enemy enemy = {.bearing = BEARING_NONE};
@@ -126,16 +131,31 @@ Enemy ranging_get_enemy(void)
     // due to looking into space, e.g:
     // 13:12:16.418: Distance: 8190 mm, status: 4, max: 1167
     // 13:12:16.418: Distance: 8191 mm, status: 2, max: 1169
-    // bool enemy_middle =
-    //     ranging_state.sensor[RANGING_MIDDLE].range_mm < RANGING_MAX_DISTANCE_MM &&
-    //     ranging_state.sensor[RANGING_MIDDLE].range_mm > RANGING_MIN_DISTANCE_MM;
 
-    // // TODO: determine bearing on ranging of all three sensors, not just middle.
-    // if (enemy_middle)
-    // {
-    //     enemy.bearing = BEARING_FRONT;
-    //     enemy.distance_mm = ranging_state.sensor[RANGING_MIDDLE].range_mm;
-    // }
+    bool enemy_left = valid_range(ranging_state.sensor[RANGING_LEFT].range_mm);
+    bool enemy_right = valid_range(ranging_state.sensor[RANGING_RIGHT].range_mm);
+    bool enemy_front = enemy_left && enemy_right;
+
+    if (enemy_front)
+    {
+        enemy.bearing = BEARING_FRONT;
+        enemy.distance_mm = (ranging_state.sensor[RANGING_LEFT].range_mm + ranging_state.sensor[RANGING_RIGHT].range_mm) / 2;
+        return enemy;
+    }
+
+    if (enemy_left)
+    {
+        enemy.bearing = BEARING_LEFT;
+        enemy.distance_mm = ranging_state.sensor[RANGING_LEFT].range_mm;
+        return enemy;
+    }
+
+    if (enemy_right)
+    {
+        enemy.bearing = BEARING_RIGHT;
+        enemy.distance_mm = ranging_state.sensor[RANGING_RIGHT].range_mm;
+        return enemy;
+    }
 
     return enemy;
 }
