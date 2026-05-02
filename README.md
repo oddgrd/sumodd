@@ -5,33 +5,49 @@
 > IMPORTANT: When the device is powered by battery, and you also want to connect USB for debugging,
 > the BATTERY MUST BE CONNECTED FIRST to ensure it is used for powering the device.
 
+This project uses [`mise`](https://mise.jdx.dev/) to manage tools and commands/tasks. If you'd
+rather not use it, inspect the `mise.toml` file to read which tools are required, and which
+commands it runs.
+
+For more information on command usage, append --help to a command, e.g. `mise run build --help`.
+For an interactive overview of the available commands, run `mise run`.
+
 To build the firmware:
 
 ```sh
-# First, generate the build directory. See CMakePresets.json for other presets, including release.
-cmake --preset debug
-# Compile the firmware.
-cmake --build --preset debug
+# Defaults to debug
+mise run build
+
+# Alternatively, specify build preset
+mise run build release
 ```
 
 To debug the firmware, first build it with the debug preset, then install the probe-rs vscode
 extension. You can now start a DAP debug session with probe-rs in the vscode debugging tab.
 
-Flash the firmware with probe-rs:
-
+To build, flash the firmware and reset the device:
 ```sh
-probe-rs download --chip STM32F303K8Tx build/debug/sumo.elf --verify
+# Build preset is required, defaults to debug
+mise run flash
 ```
 
-Reset the device with probe-rs:
+To build, flash, reset and attach an RTT logger to device:
 
 ```sh
-probe-rs reset --chip STM32F303K8Tx
+# Build preset is required, defaults to debug
+mise run launch
 ```
 
-To view logs sent over RTT in debug builds:
+To reset the device:
+
 ```sh
-probe-rs attach --chip STM32F303K8TX build/debug/sumo.elf
+mise run reset
+```
+
+To view logs sent over RTT in debug or integration test builds:
+```sh
+# Build preset is required, defaults to debug
+mise run log
 ```
 
 To debug, run the VSCode debugger with the included .vscode/launch.json, but first update the
@@ -42,8 +58,9 @@ which you can get with:
 probe-rs list
 ```
 
-If you don't want to use probe-rs, you can convert the .elf file to an ARM binary, then flash with
-st-flash:
+The mise commands depend on probe-rs. If you don't want to use probe-rs for flashing and resetting,
+you can convert the .elf file to an ARM binary, then flash with st-flash, or whichever other method
+you prefer:
 
 ```sh
 # Create the binary
@@ -55,10 +72,20 @@ st-flash --reset write  build/debug/sumo.bin 0x08000000
 
 ## Testing
 
-To run the unity unit tests, run: `./scripts/unit-test.sh`
+To run the unity unit tests, run: `mise run test`
 
-To run the various integration tests, repeat the build and flash steps above, but use the
-desired integration test cmake preset, flashing the resulting binary.
+To run the various integration tests, connect the device, then repeat the build and flash steps
+above, but use the desired integration test cmake preset.
+
+The currently existing integration test presets are:
+
+- test-motor
+
+For example, if you want to build, flash and attach a logger to an integration test, run:
+
+```sh
+mise run launch test-motor
+```
 
 ## Hardware
 

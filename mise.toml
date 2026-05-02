@@ -1,0 +1,70 @@
+# NOTE: the tools manifest is not exhaustive.
+[tools]
+cmake = "4.3.1"
+"cargo:probe-rs-tools" = "0.31.0"
+
+[settings]
+gpg_verify = true
+auto_install = true
+lockfile = true
+cargo.binstall = true
+
+[tasks.build]
+description = "Build firmware"
+usage = '''
+arg "<preset>" help="Build preset" default="debug"
+'''
+run = '''
+cmake --preset {{ usage.preset }}
+cmake --build --preset {{ usage.preset }}
+'''
+
+[tasks.flash]
+description = "Flash the firmware and reset the device"
+usage = '''
+arg "<preset>" help="Build preset" default="debug"
+'''
+depends = [{ task = "build", args = ["{{usage.preset}}"] }]
+run = '''
+probe-rs download --chip STM32F303K8Tx build/{{ usage.preset }}/sumo.elf --verify
+probe-rs reset --chip STM32F303K8Tx
+'''
+
+[tasks.launch]
+description = "Build and flash the firmware, reset the device and attach logger"
+usage = '''
+arg "<preset>" help="Build preset" default="debug" {
+    choices "debug" "test-motor"   
+    help "Only presets with debug build type enable RTT logging"
+}
+'''
+depends = [{ task = "flash", args = ["{{usage.preset}}"] }]
+run = '''
+probe-rs attach --chip STM32F303K8TX build/{{usage.preset}}/sumo.elf
+'''
+
+[tasks.reset]
+description = "Reset the device"
+run = '''
+probe-rs reset --chip STM32F303K8Tx
+'''
+
+[tasks.log]
+description = "Attach a logger to the device"
+usage = '''
+arg "<preset>" help="Build preset the firmware was compiled with" default="debug" {
+    choices "debug" "test-motor"
+    help "Only presets with debug build type enable RTT logging"
+}
+'''
+run = '''
+probe-rs attach --chip STM32F303K8TX build/{{usage.preset}}/sumo.elf
+'''
+
+[tasks.test]
+description = "Run the unity unit tests"
+run = '''
+cmake -S tests -B build/tests
+cmake --build build/tests
+ctest --test-dir build/tests --output-on-failure
+'''
