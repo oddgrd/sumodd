@@ -136,11 +136,12 @@ void motor_stop(void)
     motor_driver_set_speed(0);
 }
 
-// TODO: refactor, make part of init?
-void motor_driver_start(void)
+void motor_driver_init()
 {
+    MX_TIM2_Init();
+
     motor_driver_set_direction(FORWARD);
-    motor_driver_set_speed(STOP);
+    motor_driver_set_speed(0);
 
     if (HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3) != HAL_OK)
     {
@@ -150,9 +151,4 @@ void motor_driver_start(void)
     {
         Error_Handler();
     }
-}
-
-void motor_driver_init()
-{
-    MX_TIM2_Init();
 }

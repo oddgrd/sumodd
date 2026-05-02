@@ -16,21 +16,9 @@ typedef enum
 } MotorDirection;
 
 /**
- * @brief Initialize the motor driver.
- *
- * TODO
+ * @brief Initialize and start the motor driver.
  */
 void motor_driver_init();
-
-/**
- * @brief Start the motor driver.
- *
- * TODO
- *
- * @param htim        Handle to input capture timer peripheral.
- * @param nec_buffer  Output buffer for the decoded frame.
- */
-void motor_driver_start(void);
 
 /**
  * @brief Set the motor to drive forward at the given speed.

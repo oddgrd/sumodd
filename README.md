@@ -8,19 +8,19 @@
 To build the firmware:
 
 ```sh
-# First, generate the build directory. See CMakePresets.json for other presets, including Release.
-cmake --preset Debug
+# First, generate the build directory. See CMakePresets.json for other presets, including release.
+cmake --preset debug
 # Compile the firmware.
-cmake --build --preset Debug
+cmake --build --preset debug
 ```
 
-To debug the firmware, first build it with the Debug preset, then install the probe-rs vscode
+To debug the firmware, first build it with the debug preset, then install the probe-rs vscode
 extension. You can now start a DAP debug session with probe-rs in the vscode debugging tab.
 
 Flash the firmware with probe-rs:
 
 ```sh
-probe-rs download --chip STM32F303K8Tx build/Debug/sumo.elf --verify
+probe-rs download --chip STM32F303K8Tx build/debug/sumo.elf --verify
 ```
 
 Reset the device with probe-rs:
@@ -31,7 +31,7 @@ probe-rs reset --chip STM32F303K8Tx
 
 To view logs sent over RTT in debug builds:
 ```sh
-probe-rs attach --chip STM32F303K8TX build/Debug/sumo.elf
+probe-rs attach --chip STM32F303K8TX build/debug/sumo.elf
 ```
 
 To debug, run the VSCode debugger with the included .vscode/launch.json, but first update the
@@ -47,15 +47,18 @@ st-flash:
 
 ```sh
 # Create the binary
-arm-none-eabi-objcopy -O binary build/Debug/sumo.elf build/Debug/sumo.bin
+arm-none-eabi-objcopy -O binary build/debug/sumo.elf build/debug/sumo.bin
 
 # Flash it and reset the device
-st-flash --reset write  build/Debug/sumo.bin 0x08000000
+st-flash --reset write  build/debug/sumo.bin 0x08000000
 ```
 
-### Running unit tests
+## Testing
 
-To run the unity unit tests, run: `./scripts/test.sh`
+To run the unity unit tests, run: `./scripts/unit-test.sh`
+
+To run the various integration tests, repeat the build and flash steps above, but use the
+desired integration test cmake preset, flashing the resulting binary.
 
 ## Hardware
 

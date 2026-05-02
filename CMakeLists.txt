@@ -24,6 +24,12 @@ set(CMAKE_PROJECT_NAME sumo)
 # Enable compile command to ease indexing with e.g. clangd
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
+# This allows us to build the firmware with alternative init and run functions, which makes it
+# easy to create integration test builds without duplicating all the HAL machinery.
+set(APP_SOURCE "app/app.c" CACHE STRING "Which app.c to compile")
+
+message(STATUS "Using app source: ${APP_SOURCE}")
+
 # Core project settings
 project(${CMAKE_PROJECT_NAME})
 message("Build type: " ${CMAKE_BUILD_TYPE})
@@ -61,6 +67,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     app/state.c
     app/ring_buffer.c
     app/ranging.c
+    ${APP_SOURCE}
 )
 
 # Add include paths

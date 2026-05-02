@@ -6,33 +6,44 @@
             "hidden": true,
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/${presetName}",
-		    "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
-            "cacheVariables": {
-            }
+            "toolchainFile": "${sourceDir}/cmake/gcc-arm-none-eabi.cmake",
+            "cacheVariables": {}
         },
         {
-            "name": "Debug",
+            "name": "debug",
             "inherits": "default",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
-            "name": "Release",
+            "name": "release",
             "inherits": "default",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "test-motor",
+            "inherits": "default",
+            "cacheVariables": {
+                "APP_SOURCE": "tests/integration/test-motor.c",
+                "CMAKE_BUILD_TYPE": "Debug"
             }
         }
     ],
     "buildPresets": [
         {
-            "name": "Debug",
-            "configurePreset": "Debug"
+            "name": "debug",
+            "configurePreset": "debug"
         },
         {
-            "name": "Release",
-            "configurePreset": "Release"
+            "name": "test-motor",
+            "configurePreset": "test-motor"
+        },
+        {
+            "name": "release",
+            "configurePreset": "release"
         }
     ]
 }

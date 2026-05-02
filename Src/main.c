@@ -24,13 +24,8 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-#include "drivers/motor_driver.h"
-#include "drivers/ir_remote.h"
-#include "drivers/line_sensor.h"
-#include "state.h"
+#include "app.h"
 #include "stm32f303x8.h"
-#include "ranging.h"
-#include "drivers/vl53l0x/vl53l0x_api.h"
 #include "debug.h"
 /* USER CODE END Includes */
 
@@ -99,24 +94,15 @@ int main(void)
   MX_DMA_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-  ir_remote_init();
-  line_sensor_init();
-  int ret = ranging_init();
-  if (ret != VL53L0X_ERROR_NONE)
-  {
-    DEBUG_PRINTF("Encountered an error during ranging init, error: %d\n", ret);
-    Error_Handler();
-  }
-  motor_driver_init();
-  motor_driver_start();
+  app_init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  state_machine_init();
   while (1)
   {
-    state_machine_run();
+    app_run();
+
     // HAL_Delay(100);
     /* USER CODE END WHILE */
 
