@@ -19,7 +19,7 @@ typedef struct
     LineType last_line;
     Enemy last_enemy;
     uint32_t timer;
-    MotorDirection retreat_direction;
+    DriveDirection retreat_direction;
     uint32_t last_blink_ms;
 } RobotState;
 
@@ -52,36 +52,36 @@ static void state_enter(State new_state)
     {
     case STATE_SEARCH:
         // TODO: spin left and then right on a short timer.
-        motor_stop();
+        motor_drive(0, DRIVE_STOP);
         break;
     case STATE_ATTACK:
         if (robot_state.last_enemy.bearing == BEARING_FRONT || robot_state.last_enemy.bearing == BEARING_NONE)
         {
-            motor_stop();
+            motor_drive(0, DRIVE_STOP);
         }
         else if (robot_state.last_enemy.bearing == BEARING_LEFT)
         {
-            motor_spin_left(25);
+            motor_drive(25, DRIVE_SPIN_LEFT);
         }
         else if (robot_state.last_enemy.bearing == BEARING_RIGHT)
         {
-            motor_spin_right(25);
+            motor_drive(25, DRIVE_SPIN_RIGHT);
         }
         break;
     case STATE_RETREAT:
         robot_state.timer = HAL_GetTick() + STATE_RETREAT_DURATION_MS;
-        if (robot_state.retreat_direction == REVERSE)
+        if (robot_state.retreat_direction == DRIVE_REVERSE)
         {
-            motor_reverse(25);
+            motor_drive(25, DRIVE_REVERSE);
         }
         else
         {
-            motor_forward(25);
+            motor_drive(25, DRIVE_FORWARD);
         }
         break;
     case STATE_STANDBY:
         robot_state.last_blink_ms = HAL_GetTick();
-        motor_stop();
+        motor_drive(0, DRIVE_STOP);
         break;
     }
 }
@@ -117,11 +117,11 @@ static void process_event(StateEvent event)
         {
             if (event.line == LINE_FRONT)
             {
-                robot_state.retreat_direction = REVERSE;
+                robot_state.retreat_direction = DRIVE_REVERSE;
             }
             else if (event.line == LINE_BACK)
             {
-                robot_state.retreat_direction = FORWARD;
+                robot_state.retreat_direction = DRIVE_FORWARD;
             }
             state_enter(STATE_RETREAT);
         }
@@ -195,7 +195,7 @@ void state_machine_init(void)
 {
     robot_state.timer = TIMER_RESET_VALUE;
     robot_state.last_blink_ms = 0;
-    robot_state.retreat_direction = STOP;
+    robot_state.retreat_direction = DRIVE_STOP;
     robot_state.state = STATE_STANDBY;
     robot_state.last_line = LINE_NONE;
 }

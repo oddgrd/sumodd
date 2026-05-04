@@ -53,23 +53,31 @@ static void MX_TIM2_Init(void)
     HAL_TIM_MspPostInit(&htim2);
 }
 
-// TODO: refactor to work with two motor drivers, where each control both motors on one side,
-// skid steering. Left is GPIO F0 and F1, right is A0 and A1.
-void motor_driver_set_direction(MotorDirection direction)
+/**
+ * @brief Direction of the motors.
+ */
+typedef enum
+{
+    STOP,
+    FORWARD,    // Clockwise (CW)
+    REVERSE,    // Counterclockwise (CCW)
+    SPIN_LEFT,  // Left wheel CW, right wheel CCW
+    SPIN_RIGHT, // Right wheel CW, left wheel CCW
+} MotorDirection;
+
+/**
+ * @brief Set the direction of the motors, by configuring the GPIO output pins connected to the
+ * driver.
+ */
+static void motor_driver_set_direction(MotorDirection direction)
 {
     switch (direction)
     {
-    case STOP:
-        HAL_GPIO_WritePin(GPIOF, GPIO_PIN_0, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(GPIOF, GPIO_PIN_1, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
-        break;
     case FORWARD:
         HAL_GPIO_WritePin(GPIOF, GPIO_PIN_0, GPIO_PIN_SET);
         HAL_GPIO_WritePin(GPIOF, GPIO_PIN_1, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET);
-        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
         break;
     case SPIN_LEFT:
         HAL_GPIO_WritePin(GPIOF, GPIO_PIN_0, GPIO_PIN_RESET);
@@ -86,54 +94,70 @@ void motor_driver_set_direction(MotorDirection direction)
     case REVERSE:
         HAL_GPIO_WritePin(GPIOF, GPIO_PIN_0, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOF, GPIO_PIN_1, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
+        break;
+    case STOP:
+        HAL_GPIO_WritePin(GPIOF, GPIO_PIN_0, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOF, GPIO_PIN_1, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
+        break;
+    default:
         break;
     }
-    // TODO: default for bad input
 }
 
 // TODO: assert that number is within 0-99 range, and/or use a newtype if possible.
 // TODO: make each motor's speed individually configurable.
-static void motor_driver_set_speed(uint8_t speed)
+static void motor_driver_set_speed(uint8_t speed_left, uint8_t speed_right)
 {
-    if (speed > 99 || speed < 0)
+    if (speed_left > 99 || speed_right > 99)
     {
-        DEBUG_PRINTF("Speed should be between 0 and 99, received: %d", speed);
-        return;
+        DEBUG_PRINTF(
+            "Speed should be between 0 and 99, received speed left: %d, speed right: %d", speed_left, speed_right);
+        Error_Handler();
     }
-    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, speed);
-    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, speed);
+    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, speed_left);
+    __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, speed_right);
 }
 
-void motor_forward(uint8_t speed)
+void motor_drive(uint8_t speed, DriveDirection direction)
 {
-    motor_driver_set_direction(FORWARD);
-    motor_driver_set_speed(speed);
-}
-
-void motor_reverse(uint8_t speed)
-{
-    motor_driver_set_direction(REVERSE);
-    motor_driver_set_speed(speed);
-}
-
-void motor_spin_left(uint8_t speed)
-{
-    motor_driver_set_direction(SPIN_LEFT);
-    motor_driver_set_speed(speed);
-}
-
-void motor_spin_right(uint8_t speed)
-{
-    motor_driver_set_direction(SPIN_RIGHT);
-    motor_driver_set_speed(speed);
-}
-
-void motor_stop(void)
-{
-    motor_driver_set_direction(STOP);
-    motor_driver_set_speed(0);
+    switch (direction)
+    {
+    case DRIVE_FORWARD:
+        motor_driver_set_direction(FORWARD);
+        motor_driver_set_speed(speed, speed);
+        break;
+    case DRIVE_REVERSE:
+        motor_driver_set_direction(REVERSE);
+        motor_driver_set_speed(speed, speed);
+        break;
+    case DRIVE_ARC_LEFT:
+        motor_driver_set_direction(FORWARD);
+        uint8_t speed_left = speed >> 1;
+        motor_driver_set_speed(speed_left, speed);
+        break;
+    case DRIVE_ARC_RIGHT:
+        motor_driver_set_direction(FORWARD);
+        uint8_t speed_right = speed >> 1;
+        motor_driver_set_speed(speed, speed_right);
+        break;
+    case DRIVE_SPIN_LEFT:
+        motor_driver_set_direction(SPIN_LEFT);
+        motor_driver_set_speed(speed, speed);
+        break;
+    case DRIVE_SPIN_RIGHT:
+        motor_driver_set_direction(SPIN_RIGHT);
+        motor_driver_set_speed(speed, speed);
+        break;
+    case DRIVE_STOP:
+        motor_driver_set_direction(STOP);
+        motor_driver_set_speed(0, 0);
+    default:
+        break;
+    }
 }
 
 void motor_driver_init()
@@ -141,7 +165,7 @@ void motor_driver_init()
     MX_TIM2_Init();
 
     motor_driver_set_direction(FORWARD);
-    motor_driver_set_speed(0);
+    motor_driver_set_speed(0, 0);
 
     if (HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3) != HAL_OK)
     {

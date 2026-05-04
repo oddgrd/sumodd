@@ -79,12 +79,12 @@ above, but use the desired integration test cmake preset.
 
 The currently existing integration test presets are:
 
-- test-motor
+- test-drive
 
 For example, if you want to build, flash and attach a logger to an integration test, run:
 
 ```sh
-mise run launch test-motor
+mise run launch test-drive
 ```
 
 ## Hardware

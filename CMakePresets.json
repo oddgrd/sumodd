@@ -24,10 +24,10 @@
             }
         },
         {
-            "name": "test-motor",
+            "name": "test-drive",
             "inherits": "default",
             "cacheVariables": {
-                "APP_SOURCE": "tests/integration/test-motor.c",
+                "APP_SOURCE": "tests/integration/test-drive.c",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         }
@@ -38,8 +38,8 @@
             "configurePreset": "debug"
         },
         {
-            "name": "test-motor",
-            "configurePreset": "test-motor"
+            "name": "test-drive",
+            "configurePreset": "test-drive"
         },
         {
             "name": "release",

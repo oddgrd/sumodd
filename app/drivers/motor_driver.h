@@ -3,52 +3,25 @@
 #include <stdint.h>
 
 /**
- * @brief Direction of the motor.
+ * @brief Direction to drive in.
  *
  */
 typedef enum
 {
-    STOP,
-    FORWARD,    // Clockwise (CW)
-    REVERSE,    // Counterclockwise (CCW)
-    SPIN_LEFT,  // Left wheel CW, right wheel CCW
-    SPIN_RIGHT, // Right wheel CW, left wheel CCW
-} MotorDirection;
+    DRIVE_STOP,
+    DRIVE_FORWARD,
+    DRIVE_REVERSE,
+    // Wide turn in given direction.
+    DRIVE_ARC_LEFT,
+    DRIVE_ARC_RIGHT,
+    // Turn in place.
+    DRIVE_SPIN_LEFT,
+    DRIVE_SPIN_RIGHT,
+} DriveDirection;
+
+void motor_drive(uint8_t speed, DriveDirection direction);
 
 /**
  * @brief Initialize and start the motor driver.
  */
 void motor_driver_init();
-
-/**
- * @brief Set the motor to drive forward at the given speed.
- *
- * @param speed  Speed in levels
- */
-void motor_forward(uint8_t speed);
-
-/**
- * @brief Set the motor to reverse at the given speed.
- *
- * @param speed  Speed in levels
- */
-void motor_reverse(uint8_t speed);
-
-/**
- * @brief Set the motor to spin left at the given speed.
- *
- * @param speed  Speed in levels
- */
-void motor_spin_left(uint8_t speed);
-
-/**
- * @brief Set the motor to spin right at the given speed.
- *
- * @param speed  Speed in levels
- */
-void motor_spin_right(uint8_t speed);
-
-/**
- * @brief Stop all motors.
- */
-void motor_stop(void);

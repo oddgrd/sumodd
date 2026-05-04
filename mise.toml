@@ -34,7 +34,7 @@ probe-rs reset --chip STM32F303K8Tx
 description = "Build and flash the firmware, reset the device and attach logger"
 usage = '''
 arg "<preset>" help="Build preset" default="debug" {
-    choices "debug" "test-motor"   
+    choices "debug" "test-drive"   
     help "Only presets with debug build type enable RTT logging"
 }
 '''
@@ -53,7 +53,7 @@ probe-rs reset --chip STM32F303K8Tx
 description = "Attach a logger to the device"
 usage = '''
 arg "<preset>" help="Build preset the firmware was compiled with" default="debug" {
-    choices "debug" "test-motor"
+    choices "debug" "test-drive"
     help "Only presets with debug build type enable RTT logging"
 }
 '''
