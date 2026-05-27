@@ -12,6 +12,8 @@
 #define BLINK_INTERVAL_MS (500U)
 #define EVENT_BUFFER_SIZE (16U)
 #define TIMER_RESET_VALUE (0U)
+// Range of distance change in millimeters required to trigger an enemy event.
+#define RANGING_DEADBAND_MM (10)
 
 typedef struct
 {
@@ -21,9 +23,9 @@ typedef struct
     uint32_t timer;
     DriveDirection retreat_direction;
     uint32_t last_blink_ms;
-} RobotState;
+} RobotContext;
 
-static RobotState robot_state;
+static RobotContext ctx;
 
 const char *state_event_type_str(StateEventType type)
 {
@@ -46,7 +48,7 @@ const char *state_event_type_str(StateEventType type)
 
 static void state_enter(State new_state)
 {
-    robot_state.state = new_state;
+    ctx.state = new_state;
 
     switch (new_state)
     {
@@ -55,22 +57,47 @@ static void state_enter(State new_state)
         motor_drive(0, DRIVE_STOP);
         break;
     case STATE_ATTACK:
-        if (robot_state.last_enemy.bearing == BEARING_FRONT || robot_state.last_enemy.bearing == BEARING_NONE)
+        if (ctx.last_enemy.bearing == BEARING_FRONT)
+        {
+            if (ctx.last_enemy.distance_mm > 75)
+            {
+                motor_drive(35, DRIVE_FORWARD);
+            }
+            else
+            {
+                motor_drive(0, DRIVE_STOP);
+            }
+        }
+        else if (ctx.last_enemy.bearing == BEARING_LEFT)
+        {
+            if (ctx.last_enemy.distance_mm > 100)
+            {
+                motor_drive(25, DRIVE_ARC_LEFT);
+            }
+            else
+            {
+                motor_drive(25, DRIVE_SPIN_LEFT);
+            }
+        }
+        else if (ctx.last_enemy.bearing == BEARING_RIGHT)
+        {
+            if (ctx.last_enemy.distance_mm > 100)
+            {
+                motor_drive(25, DRIVE_ARC_RIGHT);
+            }
+            else
+            {
+                motor_drive(25, DRIVE_SPIN_RIGHT);
+            }
+        }
+        else
         {
             motor_drive(0, DRIVE_STOP);
         }
-        else if (robot_state.last_enemy.bearing == BEARING_LEFT)
-        {
-            motor_drive(25, DRIVE_SPIN_LEFT);
-        }
-        else if (robot_state.last_enemy.bearing == BEARING_RIGHT)
-        {
-            motor_drive(25, DRIVE_SPIN_RIGHT);
-        }
         break;
     case STATE_RETREAT:
-        robot_state.timer = HAL_GetTick() + STATE_RETREAT_DURATION_MS;
-        if (robot_state.retreat_direction == DRIVE_REVERSE)
+        ctx.timer = HAL_GetTick() + STATE_RETREAT_DURATION_MS;
+        if (ctx.retreat_direction == DRIVE_REVERSE)
         {
             motor_drive(25, DRIVE_REVERSE);
         }
@@ -80,7 +107,7 @@ static void state_enter(State new_state)
         }
         break;
     case STATE_STANDBY:
-        robot_state.last_blink_ms = HAL_GetTick();
+        ctx.last_blink_ms = HAL_GetTick();
         motor_drive(0, DRIVE_STOP);
         break;
     }
@@ -91,7 +118,7 @@ static void process_event(StateEvent event)
     switch (event.type)
     {
     case EVT_IR_CMD:
-        if (event.ir_cmd == IR_START && robot_state.state == STATE_STANDBY)
+        if (event.ir_cmd == IR_START && ctx.state == STATE_STANDBY)
         {
             HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, RESET);
             state_enter(STATE_SEARCH);
@@ -113,23 +140,29 @@ static void process_event(StateEvent event)
         }
         break;
     case EVT_LINE_DETECTED:
-        if (robot_state.state == STATE_SEARCH || robot_state.state == STATE_ATTACK)
+        if (ctx.state == STATE_SEARCH || ctx.state == STATE_ATTACK)
         {
+            DriveDirection new_retreat_direction = DRIVE_REVERSE;
             if (event.line == LINE_FRONT)
             {
-                robot_state.retreat_direction = DRIVE_REVERSE;
+                new_retreat_direction = DRIVE_REVERSE;
             }
             else if (event.line == LINE_BACK)
             {
-                robot_state.retreat_direction = DRIVE_FORWARD;
+                new_retreat_direction = DRIVE_FORWARD;
             }
-            state_enter(STATE_RETREAT);
+
+            if (new_retreat_direction != ctx.retreat_direction)
+            {
+                ctx.retreat_direction = new_retreat_direction;
+                state_enter(STATE_RETREAT);
+            }
         }
         break;
     case EVT_TIMEOUT:
-        if (robot_state.state == STATE_RETREAT)
+        if (ctx.state == STATE_RETREAT)
         {
-            robot_state.timer = TIMER_RESET_VALUE;
+            ctx.timer = TIMER_RESET_VALUE;
             state_enter(STATE_SEARCH);
         }
         break;
@@ -140,15 +173,30 @@ static void process_event(StateEvent event)
     }
 }
 
+/**
+ * @brief Whether the enemy bearing changed, or distance significantly changed.
+ */
+static bool enemy_changed(Enemy a, Enemy b)
+{
+    if (a.bearing != b.bearing)
+    {
+        return true;
+    }
+
+    int32_t distance_delta = (int32_t)a.distance_mm - (int32_t)b.distance_mm;
+
+    return distance_delta > RANGING_DEADBAND_MM || distance_delta < -RANGING_DEADBAND_MM;
+}
+
 static StateEvent process_input(void)
 {
     IrCommand cmd = ir_remote_get_cmd();
     LineType line = get_line();
     Enemy enemy = ranging_get_enemy();
 
-    if (robot_state.state == STATE_SEARCH || robot_state.state == STATE_ATTACK)
+    if (ctx.state == STATE_SEARCH || ctx.state == STATE_ATTACK)
     {
-        DEBUG_PRINTF("Enemy bearing: %d, distance: %dmm, state: %d\n", enemy.bearing, enemy.distance_mm, robot_state.state);
+        DEBUG_PRINTF("Enemy bearing: %d, distance: %dmm, state: %d\n", enemy.bearing, enemy.distance_mm, ctx.state);
     }
 
     StateEvent next_event = {.type = EVT_NONE};
@@ -164,9 +212,11 @@ static StateEvent process_input(void)
     // Only emit a line event if it is not NONE, and it is not the same as the previous line
     // detected. We still set the line in the state here, so that if it goes from e.g. LINE_FRONT
     // to LINE_NONE, it is recorded, even though the conditional below excludes LINE_NONE.
-    LineType previous_line = robot_state.last_line;
-    robot_state.last_line = line;
+    LineType previous_line = ctx.last_line;
+    ctx.last_line = line;
 
+    // TODO: this makes it so that if the next line is the same, but happens after a retreat, it
+    // still does not trigger a new retreat.
     if (line != LINE_NONE && line != previous_line)
     {
         next_event.type = EVT_LINE_DETECTED;
@@ -174,16 +224,16 @@ static StateEvent process_input(void)
         return next_event;
     }
 
-    if (enemy.bearing != robot_state.last_enemy.bearing)
+    if (enemy_changed(enemy, ctx.last_enemy))
     {
         next_event.type = EVT_ENEMY;
         next_event.enemy = enemy;
-        robot_state.last_enemy = enemy;
+        ctx.last_enemy = enemy;
         return next_event;
     }
 
     // TODO: consider when we want to reset timer
-    if (robot_state.timer != TIMER_RESET_VALUE && HAL_GetTick() >= robot_state.timer)
+    if (ctx.timer != TIMER_RESET_VALUE && HAL_GetTick() >= ctx.timer)
     {
         next_event.type = EVT_TIMEOUT;
         return next_event;
@@ -193,11 +243,11 @@ static StateEvent process_input(void)
 
 void state_machine_init(void)
 {
-    robot_state.timer = TIMER_RESET_VALUE;
-    robot_state.last_blink_ms = 0;
-    robot_state.retreat_direction = DRIVE_STOP;
-    robot_state.state = STATE_STANDBY;
-    robot_state.last_line = LINE_NONE;
+    ctx.timer = TIMER_RESET_VALUE;
+    ctx.last_blink_ms = 0;
+    ctx.retreat_direction = DRIVE_STOP;
+    ctx.state = STATE_STANDBY;
+    ctx.last_line = LINE_NONE;
 }
 
 void state_machine_run(void)
@@ -211,12 +261,12 @@ void state_machine_run(void)
 
     process_event(next_event);
 
-    switch (robot_state.state)
+    switch (ctx.state)
     {
     case STATE_STANDBY:
-        if ((HAL_GetTick() - robot_state.last_blink_ms) >= BLINK_INTERVAL_MS)
+        if ((HAL_GetTick() - ctx.last_blink_ms) >= BLINK_INTERVAL_MS)
         {
-            robot_state.last_blink_ms = HAL_GetTick();
+            ctx.last_blink_ms = HAL_GetTick();
             HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3);
         }
         break;
