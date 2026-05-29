@@ -1,0 +1,38 @@
+@startuml
+hide empty description
+<style>
+element {
+  HorizontalAlignment center
+}
+</style>
+
+[*] --> STANDBY : Power on
+state "<b>STANDBY</b>\n<i>Wait for start signal</i>" as STANDBY
+note left of STANDBY
+    IR stop command
+    returns to STANDBY
+    from any state
+end note
+
+STANDBY --> SEARCH : IR start received
+state "<b>SEARCH</b>\n<i>Scan for enemy</i>" as SEARCH
+
+SEARCH --> ATTACK : Enemy detected
+SEARCH --> RETREAT : Line detected
+ATTACK --> SEARCH : Enemy lost
+ATTACK --> ATTACK : Enemy detected
+state "<b>ATTACK</b>\n<i>Drive towards enemy</i>" as ATTACK {
+    state Enemy <<choice>>
+    state "Attack\nleft" as AttackLeft
+    state "Attack\nforward" as AttackForward
+    state "Attack\nright" as AttackRight
+    Enemy --> AttackLeft : Enemy\nleft
+    Enemy --> AttackForward : Enemy\nfront
+    Enemy --> AttackRight : Enemy \nright
+}
+
+
+ATTACK --> RETREAT : Line detected
+RETREAT --> SEARCH : Retreat timeout
+state "<b>RETREAT</b>\n<i>Drive away from line</i>" as RETREAT
+@enduml

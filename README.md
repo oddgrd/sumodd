@@ -2,8 +2,8 @@
 
 ## Development
 
-> IMPORTANT: When the device is powered by battery, and you also want to connect USB for debugging,
-> the BATTERY MUST BE CONNECTED FIRST to ensure it is used for powering the device.
+> IMPORTANT: When the device is powered by battery, and you also want to connect a probe for
+> debugging, the BATTERY MUST BE CONNECTED FIRST to ensure it is used for powering the device.
 
 This project uses [`mise`](https://mise.jdx.dev/) to manage tools and commands/tasks. If you'd
 rather not use it, inspect the `mise.toml` file to read which tools are required, and which
@@ -70,6 +70,17 @@ arm-none-eabi-objcopy -O binary build/debug/sumo.elf build/debug/sumo.bin
 st-flash --reset write  build/debug/sumo.bin 0x08000000
 ```
 
+## Diagrams
+
+[PlantUML](https://plantuml.com/) is used for diagrams, it depends on Java, which mise manages.
+Furthermore, you need to install [graphviz](https://plantuml.com/graphviz-dot) on your system,
+as mise cannot manage it.
+
+To download the jar file for platuml: `mise run plantuml-setup`. The path it downloads to is set
+in a mise variable, which may need to be adjusted to your local system.
+
+To generate a UML png: `mise run plantuml-generate`. Defaults to state machine diagram.
+
 ## Testing
 
 To run the unity unit tests, run: `mise run test`
@@ -95,15 +106,13 @@ mise run launch test-drive
     - VL53LOX time-of-flight sensors for detecting enemies.
     - QRE1113 line sensors for detecting the arena edge.
     - TSOP38238 infrared receiver for activating the robot remotely.
-- TB6612FNG motor drivers to control the motors.
-    - https://cdn.sparkfun.com/assets/0/1/b/b/3/TB6612FNG.pdf
-    - https://learn.sparkfun.com/tutorials/tb6612fng-hookup-guide/all
+- TB6612FNG motor driver to control the motors.
 - MPM3610 buck regulator for regulating the voltage to the MCU, ensuring it sees a steady 3.3v,
 regardless of battery voltage, which fluctuates with charge.
 
 ### IR Remote receiver
 
-Uses TIM16 as a 1Mhz input capture channel, used to time the pulses of the IR receiver. It triggers
+Uses TIM17 as a 1Mhz input capture channel, used to time the pulses of the IR receiver. It triggers
 on each falling edge, for simplicity, and that captures the current count of the timer with exact
 precision, regardless of is MCU is busy. We keep the count in memory, and on the next falling edge,
 we compare the two to gauge the duration of the pulse. Each tick of the counter represents 1us at
@@ -153,18 +162,17 @@ https://community.st.com/t5/stm32-mcus/using-timers-to-trigger-adc-conversions-p
 
 ### Motor driver
 
-We cannot power the motor directly from the MCU, as it needs 3-6V, and will draw upwards of 60mA
-at full speed. The STM32F303K8T6 is rated for at most 25mA from any output pin, and 80mA total
+We cannot power the motors directly from the MCU, as they need 3-6V, and will draw up to 0.8A each
+when stalling. The STM32F303K8T6 is rated for at most 25mA from any output pin, and 80mA total
 across all pins. Therefore, we will use a MOSFET based H-bridge motor driver, the TB6612FNG.
 
 - It takes power directly from a power source (VM), up to 6V, and uses PWM to control the output
 voltage to the motors. Thus the MCU is only indirectly involved in powering the motors.
 - The motor driver does not have a clock, the MCU provides the PWM signal using a timer peripheral,
 and supplies it to a motor driver input pin. It has two PWM input pins, one for each motor.
-- Each motor driver can support up to two motors.
 - For each motor, the driver has two additional input pins, used to control the direction of the
 motor. These open and close transistors in the H-bridge, which reverses the polarity of the voltage.
-- The H-bridge allows it to reverse polarities, thus reversing direction of the brushed DC motors.
+This can be used to control the direction of the motors, clockwise or counter-clockwise.
 
 #### Motor PWM
 
@@ -174,17 +182,17 @@ voltage we want it to see, rather it will see constantly fluctuating voltage, wh
 motor will not spin smoothly.
 
 To generate the PWM, we use a timer peripheral, TIM2 on the MCU. TIM2 is on the APB1 (advanced
-peripheral bus 1) bus. The system clock is set to 64MHz, and the APB1 prescaler is set to 1,
-so the TIM2 clock is also 64MHz. Furthermore:
+peripheral bus 1) bus. The system clock is set to 64MHz, and the APB1 prescaler is set to 32,
+so the TIM2 clock is 2 MHz. Furthermore:
 
 - TIM2 is set to count up.
-- The TIM2 prescaler (PSC) is set to 1, and the period is set to 1600. The timer will continously
+- The TIM2 prescaler (PSC) is set to 32, and the period is set to 100. The timer will continously
 count up to this period value at the clock frequency, then reset. 
 
 We can calculate the PWM frequency from these values.
 
 f_PWM = f_TIM / ((PSC + 1)(ARR + 1))
-f_PWM = 64MHz / (2 * 1600)
+f_PWM = 64MHz / (32 * 100)
 f_PWM = 20KHz
 One period is 50us.
 
@@ -193,25 +201,19 @@ capture and compare register (CCR) for the timer channel we are using to generat
 When the counter is smaller than the CCR value, the channel output will be HIGH. When it is greater
 than or equal to the CCR value, channel output will be low.
 
-For example, if we set the CCR register to 800:
+For example, if we set the CCR register to 50:
 
-- When the counter is between 0 and 799, the output will be HIGH.
-- When the counter is between 799 and 1599, the output will be LOW.
+- When the counter is between 0 and 49, the output will be HIGH.
+- When the counter is between 49 and 99, the output will be LOW.
 
 This leaves the PWM duty cycle at 50%, as it is HIGH 50% of the period. The motor driver will use
 this signal to switch the voltage it supplies to the motor (from VM) on and off at f_PWM, which
-will provide an average voltage to the motor. If the input from VM is 6V, at 800 CCR the motors
+will provide an average voltage to the motor. If the input from VM is 6V, at 49 CCR the motors
 will see 3V.
-
-We could adjust the PCK, and set ARR to 100, so that we can easily adjust the duty cycle from 0% to
-100% by setting CCR between 0-100, but that gives us poorer resolution. At 100 ARR, a change of 1 is
-a change of 1% in voltage. At 1600 ARR, a change of 1 is a 0.0625% change in voltage, which gives us
-a lot smoother control of the motor. However, that level of control is likely not important for a
-sumo bot, so we may change it later.
 
 ### Ranging sensors
 
-For detecting the distance to the enemy robot, we use three ST's VL53L0X sensors, mounted on
+For detecting the distance to the enemy robot, we use up to three ST's VL53L0X sensors, mounted on
 Adafruit breakout boards. They connect to the MCU over I2C, in addition to a GPIO pin, for data
 ready interrupts, and an XSHUT pin, for reprogramming the I2C address so we can have multiple of
 the same sensor connecting on the same bus. The sensors are configured for continuous ranging, and

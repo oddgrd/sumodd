@@ -2,12 +2,17 @@
 [tools]
 cmake = "4.3.1"
 "cargo:probe-rs-tools" = "0.31.0"
+# For PlantUML. Graphviz is also required, but must be installed manually.
+java = "11"
 
 [settings]
 gpg_verify = true
 auto_install = true
 lockfile = true
 cargo.binstall = true
+
+[vars]
+plantuml_jar = "~/.local/share/plantuml/plantuml.jar"
 
 [tasks.build]
 description = "Build firmware"
@@ -67,4 +72,18 @@ run = '''
 cmake -S tests -B build/tests
 cmake --build build/tests
 ctest --test-dir build/tests --output-on-failure
+'''
+
+[tasks.plantuml-setup]
+description = "Download PlantUML jar"
+run = '''
+mkdir -p ~/.local/share/plantuml
+curl -L https://github.com/plantuml/plantuml/releases/download/v1.2026.5/plantuml-mit-1.2026.5.jar \
+-o {{vars.plantuml_jar}}
+'''
+
+[tasks.plantuml-generate]
+description = "Download PlantUML jar"
+run = '''
+java -jar {{vars.plantuml_jar}} docs/state.uml
 '''

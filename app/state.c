@@ -8,12 +8,11 @@
 #include "ranging.h"
 #include "debug.h"
 
-#define STATE_RETREAT_DURATION_MS (2000U)
+#define STATE_RETREAT_DURATION_MS (1000U)
 #define BLINK_INTERVAL_MS (500U)
-#define EVENT_BUFFER_SIZE (16U)
 #define TIMER_RESET_VALUE (0U)
 // Range of distance change in millimeters required to trigger an enemy event.
-#define RANGING_DEADBAND_MM (10)
+#define RANGING_DEADBAND_MM (10U)
 
 typedef struct
 {
