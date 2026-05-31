@@ -7,169 +7,136 @@
 #include "drivers/motor_driver.h"
 #include "ranging.h"
 #include "debug.h"
+#include "state_common.h"
+#include "state_retreat.h"
+#include "state_standby.h"
+#include "state_search.h"
+#include "state_attack.h"
 
-#define STATE_RETREAT_DURATION_MS (1000U)
-#define BLINK_INTERVAL_MS (500U)
+#define ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
+
 #define TIMER_RESET_VALUE (0U)
 // Range of distance change in millimeters required to trigger an enemy event.
 #define RANGING_DEADBAND_MM (10U)
 
-typedef struct
+static struct RobotContext
 {
     State state;
-    LineType last_line;
-    Enemy last_enemy;
     uint32_t timer;
-    DriveDirection retreat_direction;
-    uint32_t last_blink_ms;
-} RobotContext;
+    struct StateAttackCtx state_attack;
+    struct StateCommonCtx state_common;
+    struct StateRetreatCtx state_retreat;
+    struct StateSearchCtx state_search;
+    struct StateStandbyCtx state_standby;
+} ctx;
 
-static RobotContext ctx;
-
-const char *state_event_type_str(StateEventType type)
+struct StateTransition
 {
-    switch (type)
+    State from;
+    StateEvent event;
+    State to;
+};
+
+// See docs/state.png for state machine transitions.
+static const struct StateTransition state_transitions[] = {
+    {STATE_STANDBY, EVT_ENEMY, STATE_STANDBY},
+    {STATE_STANDBY, EVT_LINE, STATE_STANDBY},
+    {STATE_STANDBY, EVT_NONE, STATE_STANDBY},
+    {STATE_STANDBY, EVT_IR_CMD, STATE_SEARCH},
+    {STATE_SEARCH, EVT_IR_CMD, STATE_STANDBY},
+    {STATE_SEARCH, EVT_ENEMY, STATE_ATTACK},
+    {STATE_SEARCH, EVT_LINE, STATE_RETREAT},
+    {STATE_SEARCH, EVT_NONE, STATE_SEARCH},
+    {STATE_ATTACK, EVT_ENEMY, STATE_ATTACK},
+    {STATE_ATTACK, EVT_NONE, STATE_SEARCH},
+    {STATE_ATTACK, EVT_LINE, STATE_RETREAT},
+    {STATE_ATTACK, EVT_IR_CMD, STATE_STANDBY},
+    {STATE_RETREAT, EVT_TIMEOUT, STATE_SEARCH},
+    {STATE_RETREAT, EVT_LINE, STATE_RETREAT},
+    {STATE_RETREAT, EVT_IR_CMD, STATE_STANDBY},
+    {STATE_RETREAT, EVT_ENEMY, STATE_RETREAT},
+    {STATE_RETREAT, EVT_NONE, STATE_RETREAT},
+};
+
+const char *state_to_str(State state)
+{
+    switch (state)
+    {
+    case STATE_STANDBY:
+        return "STANDBY";
+    case STATE_SEARCH:
+        return "SEARCH";
+    case STATE_ATTACK:
+        return "ATTACK";
+    case STATE_RETREAT:
+        return "RETREAT";
+    }
+    return "";
+}
+
+const char *state_event_to_str(StateEvent event)
+{
+    switch (event)
     {
     case EVT_ENEMY:
         return "ENEMY";
     case EVT_IR_CMD:
         return "IR CMD";
-    case EVT_LINE_DETECTED:
+    case EVT_LINE:
         return "LINE DETECTED";
     case EVT_TIMEOUT:
         return "TIMEOUT";
     case EVT_NONE:
         return "NONE";
-    default:
-        return "UNKOWN";
     }
-};
+    return "";
+}
 
-static void state_enter(State new_state)
+static void state_enter(State from, StateEvent event, State to)
 {
-    ctx.state = new_state;
 
-    switch (new_state)
+    if (from != to)
     {
+        ctx.timer = TIMER_RESET_VALUE;
+        ctx.state = to;
+        DEBUG_PRINTF("%s to %s (%s)\n", state_to_str(from), state_to_str(to), state_event_to_str(event));
+    }
+    switch (to)
+    {
+    case STATE_STANDBY:
+        state_standby_enter(&ctx.state_standby, from, event);
+        break;
     case STATE_SEARCH:
-        // TODO: spin left and then right on a short timer.
-        motor_drive(0, DRIVE_STOP);
+        state_search_enter(&ctx.state_search, from, event);
         break;
     case STATE_ATTACK:
-        if (ctx.last_enemy.bearing == BEARING_FRONT)
-        {
-            if (ctx.last_enemy.distance_mm > 75)
-            {
-                motor_drive(35, DRIVE_FORWARD);
-            }
-            else
-            {
-                motor_drive(0, DRIVE_STOP);
-            }
-        }
-        else if (ctx.last_enemy.bearing == BEARING_LEFT)
-        {
-            if (ctx.last_enemy.distance_mm > 100)
-            {
-                motor_drive(25, DRIVE_ARC_LEFT);
-            }
-            else
-            {
-                motor_drive(25, DRIVE_SPIN_LEFT);
-            }
-        }
-        else if (ctx.last_enemy.bearing == BEARING_RIGHT)
-        {
-            if (ctx.last_enemy.distance_mm > 100)
-            {
-                motor_drive(25, DRIVE_ARC_RIGHT);
-            }
-            else
-            {
-                motor_drive(25, DRIVE_SPIN_RIGHT);
-            }
-        }
-        else
-        {
-            motor_drive(0, DRIVE_STOP);
-        }
+        state_attack_enter(&ctx.state_attack, from, event);
         break;
     case STATE_RETREAT:
-        ctx.timer = HAL_GetTick() + STATE_RETREAT_DURATION_MS;
-        if (ctx.retreat_direction == DRIVE_REVERSE)
-        {
-            motor_drive(25, DRIVE_REVERSE);
-        }
-        else
-        {
-            motor_drive(25, DRIVE_FORWARD);
-        }
-        break;
-    case STATE_STANDBY:
-        ctx.last_blink_ms = HAL_GetTick();
-        motor_drive(0, DRIVE_STOP);
+        state_retreat_enter(&ctx.state_retreat, from, event);
         break;
     }
 }
 
+/**
+ * @brief Iterate through possible state transitions, entering a state on the first match.
+ *
+ * Enter a state when we match both the previous state and the current event in the transitions
+ * table.
+ */
 static void process_event(StateEvent event)
 {
-    switch (event.type)
+    for (uint16_t i = 0; i < ARRAY_SIZE(state_transitions); i++)
     {
-    case EVT_IR_CMD:
-        if (event.ir_cmd == IR_START && ctx.state == STATE_STANDBY)
+        if (ctx.state == state_transitions[i].from && event == state_transitions[i].event)
         {
-            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, RESET);
-            state_enter(STATE_SEARCH);
+            state_enter(state_transitions[i].from, event, state_transitions[i].to);
+            return;
         }
-        else
-        {
-            // TODO: refine IR commands handling.
-            state_enter(STATE_STANDBY);
-        }
-        break;
-    case EVT_ENEMY:
-        if (event.enemy.bearing == BEARING_NONE)
-        {
-            state_enter(STATE_SEARCH);
-        }
-        else
-        {
-            state_enter(STATE_ATTACK);
-        }
-        break;
-    case EVT_LINE_DETECTED:
-        if (ctx.state == STATE_SEARCH || ctx.state == STATE_ATTACK)
-        {
-            DriveDirection new_retreat_direction = DRIVE_REVERSE;
-            if (event.line == LINE_FRONT)
-            {
-                new_retreat_direction = DRIVE_REVERSE;
-            }
-            else if (event.line == LINE_BACK)
-            {
-                new_retreat_direction = DRIVE_FORWARD;
-            }
-
-            if (new_retreat_direction != ctx.retreat_direction)
-            {
-                ctx.retreat_direction = new_retreat_direction;
-                state_enter(STATE_RETREAT);
-            }
-        }
-        break;
-    case EVT_TIMEOUT:
-        if (ctx.state == STATE_RETREAT)
-        {
-            ctx.timer = TIMER_RESET_VALUE;
-            state_enter(STATE_SEARCH);
-        }
-        break;
-    case EVT_NONE:
-        break;
-    default:
-        break;
     }
+    // TODO: failure handling in case of invalid state.
+    DEBUG_PRINTF("Unable to process event using state transitions table!\n");
+    DEBUG_PRINTF("State: %s, event: %s!\n", state_to_str(ctx.state), state_event_to_str(event));
 }
 
 /**
@@ -187,93 +154,82 @@ static bool enemy_changed(Enemy a, Enemy b)
     return distance_delta > RANGING_DEADBAND_MM || distance_delta < -RANGING_DEADBAND_MM;
 }
 
+/**
+ * @brief Process and record inputs from all sensors, check the state of the timer, and return an
+ * event.
+ */
 static StateEvent process_input(void)
 {
     IrCommand cmd = ir_remote_get_cmd();
     LineType line = get_line();
+    // TODO: if data is ready this will do I2C reads which can take a few ms, we should consider
+    // only doing it in relevant states.
     Enemy enemy = ranging_get_enemy();
+
+    ctx.state_common.line = line;
+    ctx.state_common.enemy = enemy;
+    ctx.state_common.cmd = cmd;
 
     if (ctx.state == STATE_SEARCH || ctx.state == STATE_ATTACK)
     {
-        DEBUG_PRINTF("Enemy bearing: %d, distance: %dmm, state: %d\n", enemy.bearing, enemy.distance_mm, ctx.state);
+        // DEBUG_PRINTF("Enemy bearing: %d, distance: %dmm, state: %d\n", enemy.bearing, enemy.distance_mm, ctx.state);
     }
-
-    StateEvent next_event = {.type = EVT_NONE};
 
     if (cmd != IR_NONE)
     {
-        next_event.type = EVT_IR_CMD;
-        next_event.ir_cmd = cmd;
-        return next_event;
+        return EVT_IR_CMD;
     }
 
-    // TODO: extract this logic into a helper function
-    // Only emit a line event if it is not NONE, and it is not the same as the previous line
-    // detected. We still set the line in the state here, so that if it goes from e.g. LINE_FRONT
-    // to LINE_NONE, it is recorded, even though the conditional below excludes LINE_NONE.
-    LineType previous_line = ctx.last_line;
-    ctx.last_line = line;
-
-    // TODO: this makes it so that if the next line is the same, but happens after a retreat, it
-    // still does not trigger a new retreat.
-    if (line != LINE_NONE && line != previous_line)
+    if (line != LINE_NONE)
     {
-        next_event.type = EVT_LINE_DETECTED;
-        next_event.line = line;
-        return next_event;
-    }
-
-    if (enemy_changed(enemy, ctx.last_enemy))
-    {
-        next_event.type = EVT_ENEMY;
-        next_event.enemy = enemy;
-        ctx.last_enemy = enemy;
-        return next_event;
+        return EVT_LINE;
     }
 
     // TODO: consider when we want to reset timer
-    if (ctx.timer != TIMER_RESET_VALUE && HAL_GetTick() >= ctx.timer)
+    if (*ctx.state_common.timer != TIMER_RESET_VALUE && HAL_GetTick() >= *ctx.state_common.timer)
     {
-        next_event.type = EVT_TIMEOUT;
-        return next_event;
+        return EVT_TIMEOUT;
     }
-    return next_event;
+
+    if (enemy.bearing != BEARING_NONE && enemy_changed(enemy, ctx.state_common.enemy))
+    {
+        DEBUG_PRINTF("Enemy bearing: %d, distance: %dmm, state: %d\n", enemy.bearing, enemy.distance_mm, ctx.state);
+        return EVT_ENEMY;
+    }
+
+    return EVT_NONE;
 }
 
 void state_machine_init(void)
 {
-    ctx.timer = TIMER_RESET_VALUE;
-    ctx.last_blink_ms = 0;
-    ctx.retreat_direction = DRIVE_STOP;
     ctx.state = STATE_STANDBY;
-    ctx.last_line = LINE_NONE;
+    ctx.timer = TIMER_RESET_VALUE;
+
+    ctx.state_common.timer = &ctx.timer;
+    ctx.state_common.cmd = IR_NONE;
+    Enemy init_enemy = {.bearing = BEARING_NONE, .distance_mm = 0};
+    ctx.state_common.enemy = init_enemy;
+    ctx.state_common.line = LINE_NONE;
+
+    ctx.state_retreat.common = &ctx.state_common;
+    ctx.state_retreat.state = RETREAT_STATE_REVERSE;
+
+    ctx.state_standby.state_common = &ctx.state_common;
+    ctx.state_standby.last_blink_ms = 0;
+
+    ctx.state_search.state_common = &ctx.state_common;
+
+    ctx.state_attack.state_common = &ctx.state_common;
 }
 
 void state_machine_run(void)
 {
     StateEvent next_event = process_input();
 
-    if (next_event.type != EVT_NONE)
-    {
-        DEBUG_PRINTF("StateEvent type: %s\r\n", state_event_type_str(next_event.type));
-    }
+    // if (next_event != EVT_NONE)
+    // {
+    //     DEBUG_PRINTF("StateEvent: %s\r\n", state_event_to_str(next_event));
+    // }
 
     process_event(next_event);
-
-    switch (ctx.state)
-    {
-    case STATE_STANDBY:
-        if ((HAL_GetTick() - ctx.last_blink_ms) >= BLINK_INTERVAL_MS)
-        {
-            ctx.last_blink_ms = HAL_GetTick();
-            HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3);
-        }
-        break;
-    case STATE_SEARCH:
-    case STATE_ATTACK:
-        ranging_update();
-        break;
-    default:
-        break;
-    }
 }

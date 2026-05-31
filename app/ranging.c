@@ -125,6 +125,7 @@ bool valid_range(int16_t range_mm)
 
 Enemy ranging_get_enemy(void)
 {
+    ranging_update();
     Enemy enemy = {.bearing = BEARING_NONE};
 
     // TODO: also check ranging status? We will  get not-null for bad readings, e.g. max distance

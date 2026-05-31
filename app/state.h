@@ -12,33 +12,24 @@ typedef enum
     STATE_RETREAT
 } State;
 
+/**
+ * @brief Generate a string representation of the state type.
+ */
+const char *state_to_str(State state);
+
 typedef enum
 {
     EVT_NONE,
     EVT_IR_CMD,
     EVT_ENEMY,
-    EVT_LINE_DETECTED,
+    EVT_LINE,
     EVT_TIMEOUT,
-} StateEventType;
+} StateEvent;
 
 /**
  * @brief Generate a string representation of the event type.
  */
-const char *state_event_type_str(StateEventType t);
-
-/**
- * @brief The type of event, and associated context for the given event type.
- */
-typedef struct
-{
-    StateEventType type;
-    union
-    {
-        LineType line;
-        IrCommand ir_cmd;
-        Enemy enemy;
-    };
-} StateEvent;
+const char *state_event_to_str(StateEvent event);
 
 /**
  * @brief Initialize the state machine state.

@@ -1,5 +1,10 @@
 # Sumo bot
 
+The idea for this project, the design of the firmware statemachine, as well as a lot of the
+hardware choices were heavily inspired by [`artfulbytes`](https://github.com/artfulbytes)
+excellent youtube series where he mad a sumo robot from scratch. See his project code
+[here](https://github.com/artfulbytes/nsumo_video/tree/main).
+
 ## Development
 
 > IMPORTANT: When the device is powered by battery, and you also want to connect a probe for

@@ -65,6 +65,10 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     app/drivers/vl53l0x/vl53l0x_api_ranging.c
     app/drivers/vl53l0x/vl53l0x_api_strings.c
     app/state.c
+    app/state_standby.c
+    app/state_retreat.c
+    app/state_search.c
+    app/state_attack.c
     app/ring_buffer.c
     app/ranging.c
     ${APP_SOURCE}
