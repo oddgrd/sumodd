@@ -253,6 +253,38 @@ VL53L0X_Error ranging_init(void)
             return ret;
         };
 
+        // Raise the signal rate limit so that weak signals, e.g. from rough arena surfaces, are
+        // ignored. Chip default is 0.25 MCPS.
+        ret = VL53L0X_SetLimitCheckEnable(&ranging_state.sensor[i].dev, VL53L0X_CHECKENABLE_SIGNAL_RATE_FINAL_RANGE, 1);
+        if (ret != VL53L0X_ERROR_NONE)
+        {
+            DEBUG_PRINTF("Failed to enable limit check for signal rate, error: %d\n", ret);
+            return ret;
+        };
+        ret = VL53L0X_SetLimitCheckValue(&ranging_state.sensor[i].dev, VL53L0X_CHECKENABLE_SIGNAL_RATE_FINAL_RANGE,
+                                         (FixPoint1616_t)(0.40 * 65536));
+        if (ret != VL53L0X_ERROR_NONE)
+        {
+            DEBUG_PRINTF("Failed to increase signal rate limit, error: %d\n", ret);
+            return ret;
+        };
+
+        // Reject noisy / low-confidence measurements. This limit, sigma, is concerned with the standard
+        // deviation of the signal, so whether the signal is precise.
+        ret = VL53L0X_SetLimitCheckEnable(&ranging_state.sensor[i].dev, VL53L0X_CHECKENABLE_SIGMA_FINAL_RANGE, 1);
+        if (ret != VL53L0X_ERROR_NONE)
+        {
+            DEBUG_PRINTF("Failed to enable limit check for sigma, error: %d\n", ret);
+            return ret;
+        };
+        ret = VL53L0X_SetLimitCheckValue(&ranging_state.sensor[i].dev, VL53L0X_CHECKENABLE_SIGMA_FINAL_RANGE,
+                                         (FixPoint1616_t)(18 * 65536)); // mm; smaller = stricter
+        if (ret != VL53L0X_ERROR_NONE)
+        {
+            DEBUG_PRINTF("Failed to increase sigma limit, error: %d\n", ret);
+            return ret;
+        };
+
         // Configure the GPIO pin on the device, AKA the DRDY interrupt pin, which will be pulled
         // low when data is ready, and which will trigger an interrupt in an EXTI pin on the MCU.
         ret = VL53L0X_SetGpioConfig(&ranging_state.sensor[i].dev, 0,
