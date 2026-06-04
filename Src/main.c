@@ -295,6 +295,10 @@ void Error_Handler(void)
 
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_SET);
   DEBUG_PRINTF("Encountered unrecoverable error.\n");
+
+  while (1)
+  {
+  }
   /* USER CODE END Error_Handler_Debug */
 }
 #ifdef USE_FULL_ASSERT

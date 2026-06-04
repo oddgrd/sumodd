@@ -4,6 +4,8 @@ cmake = "4.3.1"
 "cargo:probe-rs-tools" = "0.31.0"
 # For PlantUML. Graphviz is also required, but must be installed manually.
 java = "11"
+python = "3.14"
+uv = "0.11.19"
 
 [settings]
 gpg_verify = true
@@ -86,4 +88,10 @@ curl -L https://github.com/plantuml/plantuml/releases/download/v1.2026.5/plantum
 description = "Download PlantUML jar"
 run = '''
 java -jar {{vars.plantuml_jar}} docs/state.uml
+'''
+
+[tasks.lint]
+description = "Lint all Python files"
+run = '''
+uvx ruff check
 '''

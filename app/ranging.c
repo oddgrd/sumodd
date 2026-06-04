@@ -12,7 +12,7 @@
 
 // We make the distance slightly larger than the 77CM max arena size to allow for inaccurate long
 // distance measurements.
-#define RANGING_MAX_DISTANCE_MM 250U
+#define RANGING_MAX_DISTANCE_MM 350U
 #define RANGING_MIN_DISTANCE_MM 10U
 // Around 16ms (66Hz) is the lowest time supported by the device between measurements,
 // including the ranging setup and measurement itself, whereas 32ms is the optimal for

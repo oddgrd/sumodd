@@ -114,6 +114,10 @@ mise run launch test-drive
 - TB6612FNG motor driver to control the motors.
 - MPM3610 buck regulator for regulating the voltage to the MCU, ensuring it sees a steady 3.3v,
 regardless of battery voltage, which fluctuates with charge.
+- 6v, 500RPM geared brushed DC motors.
+    - https://www.jsumo.com/mp12-micro-gear-motor-6v-500rpm
+- 33mm diameter, high friction aluminium wheels.
+    - https://www.jsumo.com/slt20-aluminum-silicone-wheel-set-33mmx20mm-pair
 
 ### IR Remote receiver
 
