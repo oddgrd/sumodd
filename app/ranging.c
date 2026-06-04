@@ -77,7 +77,7 @@ static void MX_I2C1_Init(void)
 
 // TODO: consider whether we should return any error from this, or simply log and continue, in case
 // some sensors fail, but not all.
-void ranging_update(void)
+static void ranging_update(void)
 {
     VL53L0X_RangingMeasurementData_t RangingData = {0};
 
@@ -118,7 +118,7 @@ void ranging_update(void)
     // DEBUG_PRINTF("l: %d\nr:%d\n", ranging_state.sensor[RANGING_LEFT].range_mm, ranging_state.sensor[RANGING_RIGHT].range_mm);
 }
 
-bool valid_range(int16_t range_mm)
+static bool valid_range(int16_t range_mm)
 {
     return range_mm < RANGING_MAX_DISTANCE_MM && range_mm > RANGING_MIN_DISTANCE_MM;
 }

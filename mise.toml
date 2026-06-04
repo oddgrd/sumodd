@@ -7,6 +7,11 @@ java = "11"
 python = "3.14"
 uv = "0.11.19"
 
+# Dependencies required but not covered by mise tools:
+# Graphviz
+# cppcheck
+# gcc
+
 [settings]
 gpg_verify = true
 auto_install = true
@@ -91,6 +96,17 @@ java -jar {{vars.plantuml_jar}} docs/state.uml
 '''
 
 [tasks.lint]
+description = "Lint firmware app files"
+run = '''
+cppcheck --quiet --enable=all --error-exitcode=1 \
+      --inline-suppr \
+      --suppress=missingInclude \
+      --suppress=unusedStructMember \
+      --suppress=missingIncludeSystem \
+      --suppress=unusedFunction app/* -i app/drivers/vl53l0x
+'''
+
+[tasks.lint-python]
 description = "Lint all Python files"
 run = '''
 uvx ruff check

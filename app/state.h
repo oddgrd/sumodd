@@ -12,11 +12,6 @@ typedef enum
     STATE_RETREAT
 } State;
 
-/**
- * @brief Generate a string representation of the state type.
- */
-const char *state_to_str(State state);
-
 typedef enum
 {
     EVT_NONE,
@@ -25,11 +20,6 @@ typedef enum
     EVT_LINE,
     EVT_TIMEOUT,
 } StateEvent;
-
-/**
- * @brief Generate a string representation of the event type.
- */
-const char *state_event_to_str(StateEvent event);
 
 /**
  * @brief Initialize the state machine state.

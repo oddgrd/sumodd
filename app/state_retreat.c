@@ -6,7 +6,7 @@
 
 #define STATE_RETREAT_DURATION_MS (1000U)
 
-void state_retreat_run(struct StateRetreatCtx *ctx)
+static void state_retreat_run(struct StateRetreatCtx *ctx)
 {
     *ctx->common->timer = HAL_GetTick() + STATE_RETREAT_DURATION_MS;
     // TODO: handle all line types, not just front and back

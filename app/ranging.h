@@ -53,7 +53,4 @@ typedef struct
 // the details in here, behind api?
 VL53L0X_Error ranging_init(void);
 
-// TODO: document this function.
-void ranging_update(void);
-
 Enemy ranging_get_enemy(void);

@@ -58,7 +58,7 @@ static const struct StateTransition state_transitions[] = {
     {STATE_RETREAT, EVT_NONE, STATE_RETREAT},
 };
 
-const char *state_to_str(State state)
+static const char *state_to_str(State state)
 {
     switch (state)
     {
@@ -74,7 +74,7 @@ const char *state_to_str(State state)
     return "";
 }
 
-const char *state_event_to_str(StateEvent event)
+static const char *state_event_to_str(StateEvent event)
 {
     switch (event)
     {
@@ -151,7 +151,7 @@ static bool enemy_changed(Enemy a, Enemy b)
 
     int32_t distance_delta = (int32_t)a.distance_mm - (int32_t)b.distance_mm;
 
-    return distance_delta > RANGING_DEADBAND_MM || distance_delta < -RANGING_DEADBAND_MM;
+    return abs(distance_delta) > RANGING_DEADBAND_MM;
 }
 
 /**
@@ -193,7 +193,7 @@ static StateEvent process_input(void)
 
     if (enemy.bearing != BEARING_NONE && enemy_changed(enemy, ctx.state_common.enemy))
     {
-        DEBUG_PRINTF("Enemy bearing: %d, distance: %dmm, state: %d\n", enemy.bearing, enemy.distance_mm, ctx.state);
+        // DEBUG_PRINTF("Enemy bearing: %d, distance: %dmm, state: %d\n", enemy.bearing, enemy.distance_mm, ctx.state);
         return EVT_ENEMY;
     }
 
