@@ -1,6 +1,7 @@
 #include "main.h"
 
 #include <stdint.h>
+#include <stdlib.h>
 #include "ring_buffer.h"
 #include "state.h"
 #include "drivers/line_sensor.h"
@@ -17,7 +18,6 @@
 
 #define TIMER_RESET_VALUE (0U)
 // Range of distance change in millimeters required to trigger an enemy event.
-#define RANGING_DEADBAND_MM (10U)
 
 static struct RobotContext
 {
@@ -58,6 +58,7 @@ static const struct StateTransition state_transitions[] = {
     {STATE_RETREAT, EVT_NONE, STATE_RETREAT},
 };
 
+#ifdef DEBUG
 static const char *state_to_str(State state)
 {
     switch (state)
@@ -91,6 +92,7 @@ static const char *state_event_to_str(StateEvent event)
     }
     return "";
 }
+#endif
 
 static void state_enter(State from, StateEvent event, State to)
 {
@@ -140,21 +142,6 @@ static void process_event(StateEvent event)
 }
 
 /**
- * @brief Whether the enemy bearing changed, or distance significantly changed.
- */
-static bool enemy_changed(Enemy a, Enemy b)
-{
-    if (a.bearing != b.bearing)
-    {
-        return true;
-    }
-
-    int32_t distance_delta = (int32_t)a.distance_mm - (int32_t)b.distance_mm;
-
-    return abs(distance_delta) > RANGING_DEADBAND_MM;
-}
-
-/**
  * @brief Process and record inputs from all sensors, check the state of the timer, and return an
  * event.
  */
@@ -167,8 +154,8 @@ static StateEvent process_input(void)
     Enemy enemy = ranging_get_enemy();
 
     ctx.state_common.line = line;
-    ctx.state_common.enemy = enemy;
     ctx.state_common.cmd = cmd;
+    ctx.state_common.enemy = enemy;
 
     if (ctx.state == STATE_SEARCH || ctx.state == STATE_ATTACK)
     {
@@ -180,18 +167,19 @@ static StateEvent process_input(void)
         return EVT_IR_CMD;
     }
 
+    // TODO: consider when we want to reset timer
+    if (*ctx.state_common.timer != TIMER_RESET_VALUE && HAL_GetTick() >= *ctx.state_common.timer)
+    {
+        ctx.timer = TIMER_RESET_VALUE;
+        return EVT_TIMEOUT;
+    }
+
     if (line != LINE_NONE)
     {
         return EVT_LINE;
     }
 
-    // TODO: consider when we want to reset timer
-    if (*ctx.state_common.timer != TIMER_RESET_VALUE && HAL_GetTick() >= *ctx.state_common.timer)
-    {
-        return EVT_TIMEOUT;
-    }
-
-    if (enemy.bearing != BEARING_NONE && enemy_changed(enemy, ctx.state_common.enemy))
+    if (enemy.bearing != BEARING_NONE)
     {
         // DEBUG_PRINTF("Enemy bearing: %d, distance: %dmm, state: %d\n", enemy.bearing, enemy.distance_mm, ctx.state);
         return EVT_ENEMY;
@@ -226,10 +214,10 @@ void state_machine_run(void)
 {
     StateEvent next_event = process_input();
 
-    // if (next_event != EVT_NONE)
-    // {
-    //     DEBUG_PRINTF("StateEvent: %s\r\n", state_event_to_str(next_event));
-    // }
+    if (next_event != EVT_NONE)
+    {
+        // DEBUG_PRINTF("StateEvent: %s\r\n", state_event_to_str(next_event));
+    }
 
     process_event(next_event);
 }

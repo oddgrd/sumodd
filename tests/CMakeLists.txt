@@ -24,7 +24,7 @@ target_compile_options(ring_buffer_tests PRIVATE
     -Wpedantic
 )
 
-# Sanitizers (great for embedded logic)
+# Sanitizers
 target_compile_options(ring_buffer_tests PRIVATE
     -fsanitize=address,undefined
     -fno-omit-frame-pointer

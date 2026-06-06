@@ -5,13 +5,21 @@
 #include <stdbool.h>
 
 // TODO: IR remote command to adjust threshold?
-#define LINE_DETECTED_THRESHOLD 450
+#define LINE_DETECTED_THRESHOLD 500
 
 ADC_HandleTypeDef hadc2;
 TIM_HandleTypeDef htim1;
 
 // Buffer for the ADC conversion value of all four channels, representing all four line sensors.
 static volatile uint16_t adc_buffer[4] = {0};
+
+struct LineSamples
+{
+    uint16_t front_left;
+    uint16_t front_right;
+    uint16_t rear_left;
+    uint16_t rear_right;
+};
 
 /**
  * @brief ADC2 Initialization Function
@@ -48,7 +56,10 @@ static void MX_ADC2_Init(void)
     sConfig.Channel = ADC_CHANNEL_1;
     sConfig.Rank = ADC_REGULAR_RANK_1;
     sConfig.SingleDiff = ADC_SINGLE_ENDED;
-    sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+    // IMPORTANT: Setting the sample time lower than this led to crosstalk between channels on
+    // optimized builds.
+    sConfig.SamplingTime = ADC_SAMPLETIME_4CYCLES_5;
+
     sConfig.OffsetNumber = ADC_OFFSET_NONE;
     sConfig.Offset = 0;
     if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
@@ -97,15 +108,18 @@ static void MX_TIM1_Init(void)
 
     // With prescaler set to 64 (-1 because stm32 TIM prescalers are zero-based), and a source clock
     // of 64MHz, this timer will have a frequency of 1MHz, which means each tick is 1us. With the
-    // period set to 5k, the timer will reload and trigger an update event every 5ms. That update
+    // period set to 100, the timer will reload and trigger an update event every 100us. That update
     // event will trigger a conversion in the line sensor ADC.
     htim1.Instance = TIM1;
     htim1.Init.Prescaler = 64 - 1;
     htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim1.Init.Period = 5000 - 1;
+    // TODO: try increasing this again.
+    htim1.Init.Period = 100 - 1;
     htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     htim1.Init.RepetitionCounter = 0;
     htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+
+    // TODO: can we skip pwm init?
     if (HAL_TIM_PWM_Init(&htim1) != HAL_OK)
     {
         Error_Handler();
@@ -145,17 +159,22 @@ static void MX_TIM1_Init(void)
     }
 }
 
-// TODO: disable interrupt during this call?
 LineType get_line(void)
 {
+    struct LineSamples samples = {
+        .front_left = adc_buffer[0],
+        .front_right = adc_buffer[1],
+        .rear_left = adc_buffer[2],
+        .rear_right = adc_buffer[3]};
+
     // TODO: make more granular, right now we only act on front or back, we should also handle
     // corners, sides etc.
-    if (adc_buffer[0] < LINE_DETECTED_THRESHOLD || adc_buffer[1] < LINE_DETECTED_THRESHOLD)
+    if (samples.front_left < LINE_DETECTED_THRESHOLD || samples.front_right < LINE_DETECTED_THRESHOLD)
     {
         return LINE_FRONT;
     }
 
-    if (adc_buffer[2] < LINE_DETECTED_THRESHOLD || adc_buffer[3] < LINE_DETECTED_THRESHOLD)
+    if (samples.rear_left < LINE_DETECTED_THRESHOLD || samples.rear_right < LINE_DETECTED_THRESHOLD)
     {
         return LINE_BACK;
     }
@@ -173,6 +192,7 @@ void line_sensor_init(void)
         Error_Handler();
     }
 
+    // TODO: use base_start? Here and elsewhere, only motors use PWM.
     if (HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1) != HAL_OK)
     {
         Error_Handler();

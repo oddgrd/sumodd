@@ -14,39 +14,28 @@ void state_attack_enter(struct StateAttackCtx *ctx, State from, StateEvent event
     Enemy enemy = ctx->state_common->enemy;
     if (enemy.bearing == BEARING_FRONT)
     {
-        if (enemy.distance_mm > 75)
-        {
-            motor_drive(35, DRIVE_FORWARD);
-        }
-        else
-        {
-            motor_drive(0, DRIVE_STOP);
-        }
+        motor_drive(60, DRIVE_FORWARD);
     }
     else if (enemy.bearing == BEARING_LEFT)
     {
         if (enemy.distance_mm > 100)
         {
-            motor_drive(25, DRIVE_ARC_LEFT);
+            motor_drive(45, DRIVE_ARC_LEFT);
         }
         else
         {
-            motor_drive(25, DRIVE_SPIN_LEFT);
+            motor_drive(40, DRIVE_SPIN_LEFT);
         }
     }
     else if (enemy.bearing == BEARING_RIGHT)
     {
         if (enemy.distance_mm > 100)
         {
-            motor_drive(25, DRIVE_ARC_RIGHT);
+            motor_drive(45, DRIVE_ARC_RIGHT);
         }
         else
         {
-            motor_drive(25, DRIVE_SPIN_RIGHT);
+            motor_drive(40, DRIVE_SPIN_RIGHT);
         }
-    }
-    else
-    {
-        motor_drive(0, DRIVE_STOP);
     }
 }
