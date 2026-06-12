@@ -5,33 +5,77 @@
 #include "debug.h"
 #include "drivers/motor_driver.h"
 
-#define STATE_RETREAT_DURATION_MS (450U)
+#define STATE_RETREAT_DURATION_MS (600U)
+
+static RetreatState next_retreat_state(const struct StateRetreatCtx *ctx)
+{
+    RetreatState state = RETREAT_STATE_NONE;
+    switch (ctx->common->line)
+    {
+    case LINE_FRONT:
+        state = RETREAT_STATE_REVERSE;
+        break;
+    case LINE_BACK:
+        state = RETREAT_STATE_FORWARD;
+        break;
+    case LINE_LEFT:
+        state = RETREAT_STATE_REVERSE_ARC_RIGHT;
+        break;
+    case LINE_RIGHT:
+        state = RETREAT_STATE_REVERSE_ARC_LEFT;
+        break;
+    case LINE_FRONT_LEFT:
+        state = RETREAT_STATE_REVERSE_ARC_RIGHT;
+        break;
+    case LINE_FRONT_RIGHT:
+        state = RETREAT_STATE_REVERSE_ARC_LEFT;
+        break;
+    case LINE_BACK_LEFT:
+        state = RETREAT_STATE_FORWARD_ARC_RIGHT;
+        break;
+    case LINE_BACK_RIGHT:
+        state = RETREAT_STATE_FORWARD_ARC_LEFT;
+        break;
+    // TODO: failure handling here, should not be possible.
+    case LINE_NONE:
+        break;
+    }
+    DEBUG_PRINTF("Set retreat state: %d\n", state);
+
+    return state;
+}
 
 static void state_retreat_run(struct StateRetreatCtx *ctx)
 {
     *ctx->common->timer = HAL_GetTick() + STATE_RETREAT_DURATION_MS;
-    // TODO: handle all line types, not just front and back
-    if (ctx->common->line == LINE_FRONT)
+    switch (next_retreat_state(ctx))
     {
+    case RETREAT_STATE_REVERSE:
         ctx->state = RETREAT_STATE_REVERSE;
-        motor_drive(50, DRIVE_REVERSE);
-    }
-    else
-    {
+        motor_drive(60, DRIVE_REVERSE);
+        break;
+    case RETREAT_STATE_FORWARD:
         ctx->state = RETREAT_STATE_FORWARD;
-        motor_drive(50, DRIVE_FORWARD);
-    }
-}
-
-static RetreatState next_retreat_state(const struct StateRetreatCtx *ctx)
-{
-    if (ctx->common->line == LINE_FRONT)
-    {
-        return RETREAT_STATE_REVERSE;
-    }
-    else
-    {
-        return RETREAT_STATE_FORWARD;
+        motor_drive(60, DRIVE_FORWARD);
+        break;
+    case RETREAT_STATE_FORWARD_ARC_LEFT:
+        ctx->state = RETREAT_STATE_FORWARD_ARC_LEFT;
+        motor_drive(45, DRIVE_FORWARD_ARC_LEFT);
+        break;
+    case RETREAT_STATE_FORWARD_ARC_RIGHT:
+        ctx->state = RETREAT_STATE_FORWARD_ARC_RIGHT;
+        motor_drive(45, DRIVE_FORWARD_ARC_RIGHT);
+        break;
+    case RETREAT_STATE_REVERSE_ARC_LEFT:
+        ctx->state = RETREAT_STATE_REVERSE_ARC_LEFT;
+        motor_drive(45, DRIVE_REVERSE_ARC_LEFT);
+        break;
+    case RETREAT_STATE_REVERSE_ARC_RIGHT:
+        ctx->state = RETREAT_STATE_REVERSE_ARC_RIGHT;
+        motor_drive(45, DRIVE_REVERSE_ARC_RIGHT);
+        break;
+    case RETREAT_STATE_NONE:
+        break;
     }
 }
 

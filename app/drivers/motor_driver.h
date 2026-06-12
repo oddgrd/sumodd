@@ -12,8 +12,10 @@ typedef enum
     DRIVE_FORWARD,
     DRIVE_REVERSE,
     // Wide turn in given direction.
-    DRIVE_ARC_LEFT,
-    DRIVE_ARC_RIGHT,
+    DRIVE_FORWARD_ARC_LEFT,
+    DRIVE_FORWARD_ARC_RIGHT,
+    DRIVE_REVERSE_ARC_LEFT,
+    DRIVE_REVERSE_ARC_RIGHT,
     // Turn in place.
     DRIVE_SPIN_LEFT,
     DRIVE_SPIN_RIGHT,

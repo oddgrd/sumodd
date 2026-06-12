@@ -12,12 +12,10 @@
 
 // We make the distance slightly larger than the 77CM max arena size to allow for inaccurate long
 // distance measurements.
-#define RANGING_MAX_DISTANCE_MM 350U
+#define RANGING_MAX_DISTANCE_MM 350U // TODO: temporarily reduced for testing purposes.
 #define RANGING_MIN_DISTANCE_MM 10U
-// Around 16ms (66Hz) is the lowest time supported by the device between measurements,
-// including the ranging setup and measurement itself, whereas 32ms is the optimal for
-// accuracy. We should consider a lower value here in the future, since we are only measuring
-// within the dohyo.
+// Around 20ms is the lowest timing budget supported by the VL53L0X, with +-5% accuracy, whereas
+// 30ms is the default. Since we are only measuring within a 77cm dohyo, we go for the fastest.
 #define RANGING_TIMING_BUDGET_US 20000U
 
 I2C_HandleTypeDef hi2c1;
@@ -262,7 +260,7 @@ VL53L0X_Error ranging_init(void)
             return ret;
         };
         ret = VL53L0X_SetLimitCheckValue(&ranging_state.sensor[i].dev, VL53L0X_CHECKENABLE_SIGNAL_RATE_FINAL_RANGE,
-                                         (FixPoint1616_t)(0.40 * 65536));
+                                         (FixPoint1616_t)(0.55 * 65536));
         if (ret != VL53L0X_ERROR_NONE)
         {
             DEBUG_PRINTF("Failed to increase signal rate limit, error: %d\n", ret);

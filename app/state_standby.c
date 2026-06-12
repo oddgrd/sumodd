@@ -15,6 +15,7 @@ void state_standby_enter(struct StateStandbyCtx *ctx, State from, StateEvent eve
     if ((now - ctx->last_blink_ms) >= BLINK_INTERVAL_MS)
     {
         ctx->last_blink_ms = now;
+        // TODO: ensure led is always turned off when exiting standby state.
         HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3);
     }
 }

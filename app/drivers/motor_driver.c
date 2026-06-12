@@ -135,15 +135,25 @@ void motor_drive(uint8_t speed, DriveDirection direction)
         motor_driver_set_speed(speed, speed);
         break;
     // To achieve the wide arc turns, we simply halve the speed on one side.
-    case DRIVE_ARC_LEFT:
+    case DRIVE_FORWARD_ARC_LEFT:
         motor_driver_set_direction(FORWARD);
         uint8_t speed_right = speed >> 1;
         motor_driver_set_speed(speed, speed_right);
         break;
-    case DRIVE_ARC_RIGHT:
+    case DRIVE_FORWARD_ARC_RIGHT:
         motor_driver_set_direction(FORWARD);
         uint8_t speed_left = speed >> 1;
         motor_driver_set_speed(speed_left, speed);
+        break;
+    case DRIVE_REVERSE_ARC_LEFT:
+        motor_driver_set_direction(REVERSE);
+        uint8_t speed_rev_right = speed >> 1;
+        motor_driver_set_speed(speed, speed_rev_right);
+        break;
+    case DRIVE_REVERSE_ARC_RIGHT:
+        motor_driver_set_direction(REVERSE);
+        uint8_t speed_rev_left = speed >> 1;
+        motor_driver_set_speed(speed_rev_left, speed);
         break;
     case DRIVE_SPIN_LEFT:
         motor_driver_set_direction(SPIN_LEFT);
@@ -156,8 +166,6 @@ void motor_drive(uint8_t speed, DriveDirection direction)
     case DRIVE_STOP:
         motor_driver_set_direction(STOP);
         motor_driver_set_speed(0, 0);
-    default:
-        break;
     }
 }
 

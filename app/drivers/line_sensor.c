@@ -146,19 +146,49 @@ LineType get_line(void)
     struct LineSamples samples = {
         .front_left = adc_buffer[0],
         .front_right = adc_buffer[1],
-        .rear_left = adc_buffer[2],
-        .rear_right = adc_buffer[3]};
+        .rear_right = adc_buffer[2],
+        .rear_left = adc_buffer[3]};
 
     // TODO: make more granular, right now we only act on front or back, we should also handle
     // corners, sides etc.
-    if (samples.front_left < LINE_DETECTED_THRESHOLD || samples.front_right < LINE_DETECTED_THRESHOLD)
+    if (samples.front_left < LINE_DETECTED_THRESHOLD && samples.front_right < LINE_DETECTED_THRESHOLD)
     {
         return LINE_FRONT;
     }
 
-    if (samples.rear_left < LINE_DETECTED_THRESHOLD || samples.rear_right < LINE_DETECTED_THRESHOLD)
+    if (samples.rear_left < LINE_DETECTED_THRESHOLD && samples.rear_right < LINE_DETECTED_THRESHOLD)
     {
         return LINE_BACK;
+    }
+
+    if (samples.front_left < LINE_DETECTED_THRESHOLD && samples.rear_left < LINE_DETECTED_THRESHOLD)
+    {
+        return LINE_LEFT;
+    }
+
+    if (samples.front_right < LINE_DETECTED_THRESHOLD && samples.rear_right < LINE_DETECTED_THRESHOLD)
+    {
+        return LINE_RIGHT;
+    }
+
+    if (samples.front_left < LINE_DETECTED_THRESHOLD)
+    {
+        return LINE_FRONT_LEFT;
+    }
+
+    if (samples.front_right < LINE_DETECTED_THRESHOLD)
+    {
+        return LINE_FRONT_RIGHT;
+    }
+
+    if (samples.rear_left < LINE_DETECTED_THRESHOLD)
+    {
+        return LINE_BACK_LEFT;
+    }
+
+    if (samples.rear_right < LINE_DETECTED_THRESHOLD)
+    {
+        return LINE_BACK_RIGHT;
     }
 
     return LINE_NONE;

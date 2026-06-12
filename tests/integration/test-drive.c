@@ -18,9 +18,13 @@ void app_run(void)
     HAL_Delay(3000);
     motor_drive(25, DRIVE_REVERSE);
     HAL_Delay(3000);
-    motor_drive(25, DRIVE_ARC_LEFT);
+    motor_drive(25, DRIVE_FORWARD_ARC_LEFT);
     HAL_Delay(3000);
-    motor_drive(25, DRIVE_ARC_RIGHT);
+    motor_drive(25, DRIVE_FORWARD_ARC_RIGHT);
+    HAL_Delay(3000);
+    motor_drive(25, DRIVE_REVERSE_ARC_LEFT);
+    HAL_Delay(3000);
+    motor_drive(25, DRIVE_REVERSE_ARC_RIGHT);
     HAL_Delay(3000);
     motor_drive(25, DRIVE_SPIN_LEFT);
     HAL_Delay(3000);

@@ -9,8 +9,14 @@
 
 typedef enum
 {
+    // TODO: do we need all these none variants?
+    RETREAT_STATE_NONE,
     RETREAT_STATE_REVERSE,
     RETREAT_STATE_FORWARD,
+    RETREAT_STATE_FORWARD_ARC_LEFT,
+    RETREAT_STATE_FORWARD_ARC_RIGHT,
+    RETREAT_STATE_REVERSE_ARC_LEFT,
+    RETREAT_STATE_REVERSE_ARC_RIGHT,
 } RetreatState;
 
 struct StateRetreatCtx
