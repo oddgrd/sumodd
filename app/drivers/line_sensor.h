@@ -1,6 +1,15 @@
 #pragma once
 
 /**
+ * This driver is concerned with configuring and initializing the peripherals needed to read our
+ * line detection sensors, specifically an ADC and a timer peripheral. It also defines the DMA
+ * buffer where ADC conversion are written to, as well as an API for reading the buffer.
+ *
+ * For more information on line detection, refer to the line detection docs in
+ * `docs/line-detection.md`.
+ */
+
+/**
  * @brief Initialize the line sensor driver.
  *
  * Start the timer peripheral that triggers ADC conversion, start the ADC and the ADC watchdog.

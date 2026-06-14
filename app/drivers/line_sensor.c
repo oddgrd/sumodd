@@ -149,8 +149,6 @@ LineType get_line(void)
         .rear_right = adc_buffer[2],
         .rear_left = adc_buffer[3]};
 
-    // TODO: make more granular, right now we only act on front or back, we should also handle
-    // corners, sides etc.
     if (samples.front_left < LINE_DETECTED_THRESHOLD && samples.front_right < LINE_DETECTED_THRESHOLD)
     {
         return LINE_FRONT;

@@ -142,33 +142,6 @@ message.
 
 [^1]: https://www.infineon.com/assets/row/public/documents/60/42/infineon-an2023-03-infrared-remote-control-and-saving-last-speed-setting-applicationnotes-en.pdf?fileId=8ac78c8c8d1b852e018d21ff0aa71feb
 
-### Line-sensor ADC
-
-We use one of the on-chip ADCs at 10bit resolution to convert the analog readings from the QRE1113 line
-sensors to digital values. We don't need high resolution, we are effectively only seeing high
-(black surface, center of dohyo) or low (white surface, border of dohyo). We should consider going
-down to 6 or 8 bit in the future, if faster conversions are needed. 
-
-The ADC conversion is not continuous, it is triggered by a timer
-peripheral every 20ms (timer clock divided to 1MHz, max count 20000, triggers an event when it maxes out,
-which triggers the conversion).
-
-We started out using the STM32 ADC Watchdog, which can be set to trigger an interrupt when one or
-more channel conversions are outside of the desired range. However, this interrupt, when covering
-many channels, does not tell you which channel triggered it. Therefore, we decided to refactor to
-a DMA circular buffer based approach, where the ADC scans all 4 channels every time it is triggered
-by the timer event. The resulting conversion values are then placed in a buffer using DMA. When the
-scan conversion is completed, an interrupt is raised. In this interrupt we inspect the values of
-the buffer to see which channel triggered, which gives us the information we need to decide which
-direction to retreat. An event is then emitted to the state machine queue, which handles the rest.
-
-We couldn't use continuous conversion with this strategy, the interrupts would be too frequent, so
-we are likely to stick with the timer peripheral conversion trigger. However, we will likely need to
-tweak the timings here to be fast enough to work with the robot's speed when we get it up and running.
-
-See ST guide on timer peripheral triggered ADC conversion here:
-https://community.st.com/t5/stm32-mcus/using-timers-to-trigger-adc-conversions-periodically/ta-p/49889
-
 ### Motor driver
 
 We cannot power the motors directly from the MCU, as they need 3-6V, and will draw up to 0.8A each
