@@ -3,10 +3,12 @@
 - [QRE1113][qre1113] analog infrared reflective object sensor, on a [Sparkfun breakout board][qre1113-board].
 - [STM32F303K8T6][mcu] MCU on-chip successive approximation register (SAR)[analog-to-digital converter][rm-0316] (ADC).
 
+// TODO: how it fits into the state machine?
+
 <details>
 <summary><strong>Sparkfun QRE1113 Analog Schematic</strong></summary>
 
-![SparkFun QRE1113 analog breakout schematic](image.png)
+![SparkFun QRE1113 analog breakout schematic](media/sparkfun-qre1113-schematic.png)
 
 </details>
 For detecting the white line around the dohyo, we use four QRE1113 analog breakout boards. This

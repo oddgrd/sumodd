@@ -14,7 +14,6 @@ typedef struct
     uint8_t cmd_inverted;
 } NecxDecoded;
 
-// TODO: don't use hardcoded values?
 typedef enum
 {
     IR_NONE,

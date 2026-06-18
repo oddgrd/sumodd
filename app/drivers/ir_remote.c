@@ -34,6 +34,8 @@ static void MX_TIM17_Init(void)
     htim17.Instance = TIM17;
     htim17.Init.Prescaler = 64 - 1;
     htim17.Init.CounterMode = TIM_COUNTERMODE_UP;
+    // TIM17 is a 16 bit counter, but note that if we change timers, the ISR logic expects a 16 bit
+    // period, so the period cannot be larger unless the logic is updated.
     htim17.Init.Period = 65536 - 1;
     htim17.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     htim17.Init.RepetitionCounter = 0;
@@ -119,12 +121,24 @@ static NecStatus parse_necx(const uint32_t raw, NecxDecoded *out)
  * Triggered by a timer peripheral set to input capture on the falling edges of an NEC
  * IR signal. Pulse timing is accumulated to assemble and decode an NEC frame.
  *
+ * IMPORTANT: the ISR logic expects a 16 bit timer.
+ *
  * @param htim        Handle to input capture timer peripheral.
  */
 static void nec_capture_isr(TIM_HandleTypeDef *htim)
 {
-    // Safe cast, TIM16 has a 16-bit auto-reload upcounter.
+    // Safe cast: TIM16 has a 16-bit auto-reload upcounter.
     uint16_t now = (uint16_t)HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+    // dt is uint16_t, so it measures elapsed ticks correctly even when the counter wraps. The
+    // subtraction below happens in promoted int and can go negative, the conversion back to
+    // uint16_t reduces it mod 65536, which lands on the correct elapsed time.
+    //
+    // Example: a 2200-tick bit that runs across the counter max.
+    //   First falling edge:  now = 64000 -> stored into last.
+    //   Next falling edge:   now = 664 (counter lapped: 64000 -> 65535 -> 0 -> 664).
+    //   now - last = 664 - 64000 = -63336   (intermediate, signed int)
+    //   -63336 + 65536 = 2200               (after conversion to uint16_t)
+    //   dt = 2200  -> the true elapsed time.
     uint16_t dt = now - last;
     last = now;
 
@@ -160,7 +174,6 @@ static void nec_capture_isr(TIM_HandleTypeDef *htim)
             case 0x11:
                 cmd = IR_STOP;
                 ring_buffer_push(&cmd_queue, &cmd);
-            default:
                 break;
             }
         }
@@ -176,6 +189,7 @@ static void nec_capture_isr(TIM_HandleTypeDef *htim)
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
+    // IMPORTANT: the ISR logic expects a 16 bit timer.
     if (htim->Instance == TIM17 && htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
     {
         nec_capture_isr(htim);

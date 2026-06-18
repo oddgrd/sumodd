@@ -116,31 +116,17 @@ mise run launch test-drive
 regardless of battery voltage, which fluctuates with charge.
 - 6v, 500RPM geared brushed DC motors.
     - https://www.jsumo.com/mp12-micro-gear-motor-6v-500rpm
-- 33mm diameter, high friction aluminium wheels.
+- 33mm diameter, aluminium wheels with high-friction rubber.
     - https://www.jsumo.com/slt20-aluminum-silicone-wheel-set-33mmx20mm-pair
 
-### IR Remote receiver
+## Documentation
 
-Uses TIM17 as a 1Mhz input capture channel, used to time the pulses of the IR receiver. It triggers
-on each falling edge, for simplicity, and that captures the current count of the timer with exact
-precision, regardless of is MCU is busy. We keep the count in memory, and on the next falling edge,
-we compare the two to gauge the duration of the pulse. Each tick of the counter represents 1us at
-1MHz clock. We can use this information to decode the signal.
+Documentation of the robot's core functionality can be found in the docs directory.
 
-See ST guide on input capture here:
-https://community.st.com/t5/stm32-mcus/how-to-use-the-input-capture-feature/ta-p/704161
+- [Dohyo border line detection](docs/line-detection.md).
+- [Remote start IR signal handling](docs/ir-remote.md).
 
-With an NEC protocol[^1] receiver, we will receive 32 bits for each keypress.
-
-- 9ms down and 4.5ms up represents start of transmission.
-- Next, we will receive 32 pulses representing our bits, ~1.1ms for b0 and ~2.2ms for b1.
-- The first 16 bits are the address of the remote device. Note that our remote is an NECx remote,
-in conventional NEC the first 16 bits are address and address inverted.
-- The address bits are followed by 8 bit command, and inverted 8 bit command, which can be used
-to validate the integrity of the signal, if it is not correctly inverted, we should discard the
-message.
-
-[^1]: https://www.infineon.com/assets/row/public/documents/60/42/infineon-an2023-03-infrared-remote-control-and-saving-last-speed-setting-applicationnotes-en.pdf?fileId=8ac78c8c8d1b852e018d21ff0aa71feb
+TODO: extract, and expand, documentation of remaining core functionality to docs directory.
 
 ### Motor driver
 
