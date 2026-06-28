@@ -7,16 +7,37 @@
 #define VL53L0X_DEFAULT_ADDRESS 0x52
 // I2C address we set for each device during the initialization of the device.
 #define RANGING_ADDR_LEFT 0x30
-// #define RANGING_ADDR_MIDDLE 0x32
+#define RANGING_ADDR_MIDDLE 0x32
 #define RANGING_ADDR_RIGHT 0x34
 
-// We make the distance slightly larger than the 77CM max arena size to allow for inaccurate long
-// distance measurements.
-#define RANGING_MAX_DISTANCE_MM 350U // TODO: temporarily reduced for testing purposes.
+// We the range lower than the max size of the arena since it will rarely need it, and it makes
+// testing easier. The sensor can handle up to 1M well with the lowest timing budget, however,
+// depending on the amount of ambient light.
+#define RANGING_MAX_DISTANCE_MM 400U
 #define RANGING_MIN_DISTANCE_MM 10U
 // Around 20ms is the lowest timing budget supported by the VL53L0X, with +-5% accuracy, whereas
 // 30ms is the default. Since we are only measuring within a 77cm dohyo, we go for the fastest.
 #define RANGING_TIMING_BUDGET_US 20000U
+
+// NOTE: for more information on the below limits, see the answer from ST here:
+// https://community.st.com/imaging-sensors-49/vl53l0x-api-usage-of-the-6-limit-checks-ambient-spad-damper-dmax-cal-etc-37534
+
+// NOTE: q16_16 is Q notation, it means the number has 16 bits for the integer part, and 16 bits
+// for the fractional part, this way the vl53l0x API can store a fractional number in a u32 (here
+// with the FixPoint1616_t type alias for u32), to avoid floating point operations on embedded
+// targets.
+
+// If the signal strength is lower than this, set a signal fail status (2) on the ranging data.
+// We usually set this to the default, 0.25 mega counts per second (MCPS), but it can be increased
+// to adapt to environmental conditions, e.g. an arena with a lot of ambient IR.
+
+#define SIGNAL_RATE_LIMIT_MCPS_Q16_16 ((FixPoint1616_t)(25UL * 65536UL / 100UL)) // 0.25 * 65536
+// If the standard deviation of the range data is greater than this, set a sigma fail status (1) on
+// the ranging data. If we see this status when we read the ranging data, we may choose to ignore
+// the reading.
+// We usually set this to the default, 18mm, but it can be lowered to increase precision of
+// measurements.
+#define SIGMA_FINAL_RANGE_MM_Q16_16 ((FixPoint1616_t)(18UL * 65536UL))
 
 I2C_HandleTypeDef hi2c1;
 
@@ -30,7 +51,7 @@ typedef struct
 // XSHUT pin and device address configurations for range sensors.
 static const RangingConfig ranging_config[RANGING_COUNT] = {
     [RANGING_LEFT] = {GPIOA, GPIO_PIN_11, RANGING_ADDR_LEFT},
-    // [RANGING_MIDDLE] = {GPIOA, GPIO_PIN_8, RANGING_ADDR_MIDDLE},
+    [RANGING_MIDDLE] = {GPIOA, GPIO_PIN_8, RANGING_ADDR_MIDDLE},
     [RANGING_RIGHT] = {GPIOB, GPIO_PIN_1, RANGING_ADDR_RIGHT},
 };
 
@@ -73,8 +94,11 @@ static void MX_I2C1_Init(void)
     }
 }
 
-// TODO: consider whether we should return any error from this, or simply log and continue, in case
-// some sensors fail, but not all.
+/**
+ * @brief Read the ranging sensors and update the ranging state.
+ *
+ * If a failure occurs, the function will simply log the error (in debug builds) and continue.
+ */
 static void ranging_update(void)
 {
     VL53L0X_RangingMeasurementData_t RangingData = {0};
@@ -83,7 +107,6 @@ static void ranging_update(void)
     {
         if (ranging_state.sensor[i].data_ready)
         {
-            // TODO: debug log more ranging data to inspect it.
             int ret = VL53L0X_GetRangingMeasurementData(&ranging_state.sensor[i].dev, &RangingData);
             if (ret != VL53L0X_ERROR_NONE)
             {
@@ -113,7 +136,7 @@ static void ranging_update(void)
         }
     }
 
-    // DEBUG_PRINTF("l: %d\nr:%d\n", ranging_state.sensor[RANGING_LEFT].range_mm, ranging_state.sensor[RANGING_RIGHT].range_mm);
+    // DEBUG_PRINTF("l:%d m:%d r:%d\n", ranging_state.sensor[RANGING_LEFT].range_mm, ranging_state.sensor[RANGING_MIDDLE].range_mm, ranging_state.sensor[RANGING_RIGHT].range_mm);
 }
 
 static bool valid_range(int16_t range_mm)
@@ -132,13 +155,13 @@ Enemy ranging_get_enemy(void)
     // 13:12:16.418: Distance: 8191 mm, status: 2, max: 1169
 
     bool enemy_left = valid_range(ranging_state.sensor[RANGING_LEFT].range_mm);
+    bool enemy_front = valid_range(ranging_state.sensor[RANGING_MIDDLE].range_mm);
     bool enemy_right = valid_range(ranging_state.sensor[RANGING_RIGHT].range_mm);
-    bool enemy_front = enemy_left && enemy_right;
 
     if (enemy_front)
     {
         enemy.bearing = BEARING_FRONT;
-        enemy.distance_mm = (ranging_state.sensor[RANGING_LEFT].range_mm + ranging_state.sensor[RANGING_RIGHT].range_mm) >> 1;
+        enemy.distance_mm = ranging_state.sensor[RANGING_MIDDLE].range_mm;
         return enemy;
     }
 
@@ -251,8 +274,8 @@ VL53L0X_Error ranging_init(void)
             return ret;
         };
 
-        // Raise the signal rate limit so that weak signals, e.g. from rough arena surfaces, are
-        // ignored. Chip default is 0.25 MCPS.
+        // Explicitly set the SIGNAL_RATE_FINAL_RANGE (signal strength limit), so we can easily
+        // increase it from the default in high ambient light conditions.
         ret = VL53L0X_SetLimitCheckEnable(&ranging_state.sensor[i].dev, VL53L0X_CHECKENABLE_SIGNAL_RATE_FINAL_RANGE, 1);
         if (ret != VL53L0X_ERROR_NONE)
         {
@@ -260,15 +283,15 @@ VL53L0X_Error ranging_init(void)
             return ret;
         };
         ret = VL53L0X_SetLimitCheckValue(&ranging_state.sensor[i].dev, VL53L0X_CHECKENABLE_SIGNAL_RATE_FINAL_RANGE,
-                                         (FixPoint1616_t)(0.55 * 65536));
+                                         SIGNAL_RATE_LIMIT_MCPS_Q16_16);
         if (ret != VL53L0X_ERROR_NONE)
         {
             DEBUG_PRINTF("Failed to increase signal rate limit, error: %d\n", ret);
             return ret;
         };
 
-        // Reject noisy / low-confidence measurements. This limit, sigma, is concerned with the standard
-        // deviation of the signal, so whether the signal is precise.
+        // Explicitly set the SIGMA_FINAL_RANGE (standard deviation limit), so we can easily reduce
+        // it from the default in high ambient light conditions.
         ret = VL53L0X_SetLimitCheckEnable(&ranging_state.sensor[i].dev, VL53L0X_CHECKENABLE_SIGMA_FINAL_RANGE, 1);
         if (ret != VL53L0X_ERROR_NONE)
         {
@@ -276,7 +299,7 @@ VL53L0X_Error ranging_init(void)
             return ret;
         };
         ret = VL53L0X_SetLimitCheckValue(&ranging_state.sensor[i].dev, VL53L0X_CHECKENABLE_SIGMA_FINAL_RANGE,
-                                         (FixPoint1616_t)(18 * 65536)); // mm; smaller = stricter
+                                         SIGMA_FINAL_RANGE_MM_Q16_16);
         if (ret != VL53L0X_ERROR_NONE)
         {
             DEBUG_PRINTF("Failed to increase sigma limit, error: %d\n", ret);
@@ -284,7 +307,8 @@ VL53L0X_Error ranging_init(void)
         };
 
         // Configure the GPIO pin on the device, AKA the DRDY interrupt pin, which will be pulled
-        // low when data is ready, and which will trigger an interrupt in an EXTI pin on the MCU.
+        // low when data is ready, and which will trigger an interrupt on the falling edge in an
+        // EXTI pin on the MCU.
         ret = VL53L0X_SetGpioConfig(&ranging_state.sensor[i].dev, 0,
                                     VL53L0X_DEVICEMODE_CONTINUOUS_RANGING,
                                     VL53L0X_GPIOFUNCTIONALITY_NEW_MEASURE_READY,
@@ -309,17 +333,17 @@ VL53L0X_Error ranging_init(void)
     return ret;
 }
 
-// VL53L0X data ready interrupt ISR. Set flag to read from I2C in main loop.
+// VL53L0X data ready interrupt ISR. Set flag to read data over I2C in main loop.
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
     if (GPIO_Pin == GPIO_PIN_4)
     {
         ranging_state.sensor[RANGING_LEFT].data_ready = true;
     }
-    // if (GPIO_Pin == GPIO_PIN_0)
-    // {
-    //     ranging_state.sensor[RANGING_MIDDLE].data_ready = true;
-    // }
+    if (GPIO_Pin == GPIO_PIN_0)
+    {
+        ranging_state.sensor[RANGING_MIDDLE].data_ready = true;
+    }
     if (GPIO_Pin == GPIO_PIN_12)
     {
         ranging_state.sensor[RANGING_RIGHT].data_ready = true;

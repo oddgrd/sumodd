@@ -11,7 +11,7 @@ extern I2C_HandleTypeDef hi2c1;
 typedef enum
 {
     RANGING_LEFT = 0,
-    // RANGING_MIDDLE,
+    RANGING_MIDDLE,
     RANGING_RIGHT,
     RANGING_COUNT
 } RangingSensor;

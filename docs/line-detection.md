@@ -11,6 +11,7 @@
 ![SparkFun QRE1113 analog breakout schematic](media/sparkfun-qre1113-schematic.png)
 
 </details>
+
 For detecting the white line around the dohyo, we use four QRE1113 analog breakout boards. This
 board has the [QRE1113][qre1113] sensor, which consists of an IR emitter, as well as a phototransistor. On the board, the transistor collector is pulled high to VIN with a 10k resistor.
 See schematic in the dropdown above.
