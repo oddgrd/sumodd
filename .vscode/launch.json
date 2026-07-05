@@ -4,10 +4,9 @@
         {
             "type": "probe-rs-debug",
             "request": "launch",
-            "name": "sumo probe_rs debug launch config",
+            "name": "probe-rs launch",
             "cwd": "${workspaceFolder}",
             "speed": 4600,
-            "probe": "0483:374b:0672FF505682884967023307",
             "runtimeExecutable": "probe-rs",
             "runtimeArgs": [
                 "dap-server"
@@ -23,7 +22,25 @@
             "coreConfigs": [
                 {
                     "coreIndex": 0,
-                    "programBinary": "build/Debug/sumo.elf",
+                    "programBinary": "build/debug/sumo.elf",
+                    // Allows us to view peripheral registers in the debug variables.
+                    "svdFile": "STM32F303.svd"
+                }
+            ],
+            "env": {},
+            "consoleLogLevel": "Console",
+        },
+        {
+            "type": "probe-rs-debug",
+            "request": "attach",
+            "name": "probe-rs attach",
+            "cwd": "${workspaceFolder}",
+            "speed": 4600,
+            "chip": "STM32F303K8TX",
+            "coreConfigs": [
+                {
+                    "coreIndex": 0,
+                    "programBinary": "build/debug/sumo.elf",
                     // Allows us to view peripheral registers in the debug variables.
                     "svdFile": "STM32F303.svd"
                 }

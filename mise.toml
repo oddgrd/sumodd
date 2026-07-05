@@ -62,7 +62,7 @@ probe-rs reset --chip STM32F303K8Tx
 '''
 
 [tasks.log]
-description = "Attach a logger to the device"
+description = "Attach an RTT logger to the device"
 usage = '''
 arg "<preset>" help="Build preset the firmware was compiled with" default="debug" {
     choices "debug" "test-drive"
