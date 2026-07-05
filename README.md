@@ -1,14 +1,11 @@
-# Sumo bot
+# Sumodd mini-sumo robot
 
 The idea for this project, the design of the firmware statemachine, as well as a lot of the
 hardware choices were heavily inspired by [`artfulbytes`](https://github.com/artfulbytes)
-excellent youtube series where he mad a sumo robot from scratch. See his project code
+excellent youtube series where he made a sumo robot from scratch. See his project code
 [here](https://github.com/artfulbytes/nsumo_video/tree/main).
 
 ## Development
-
-> IMPORTANT: When the device is powered by battery, and you also want to connect a probe for
-> debugging, the BATTERY MUST BE CONNECTED FIRST to ensure it is used for powering the device.
 
 This project uses [`mise`](https://mise.jdx.dev/) to manage tools and commands/tasks. If you'd
 rather not use it, inspect the `mise.toml` file to read which tools are required, and which
@@ -50,6 +47,7 @@ mise run reset
 ```
 
 To view logs sent over RTT in debug or integration test builds:
+
 ```sh
 # Build preset is required, defaults to debug
 mise run log
@@ -125,6 +123,7 @@ Documentation of the robot's core functionality can be found in the docs directo
 
 - [Dohyo border line detection](docs/line-detection.md).
 - [Remote start IR signal handling](docs/ir-remote.md).
+- [Enemy detection with IR ToF sensors](docs/ranging.md).
 
 TODO: extract, and expand, documentation of remaining core functionality to docs directory.
 
@@ -178,28 +177,3 @@ This leaves the PWM duty cycle at 50%, as it is HIGH 50% of the period. The moto
 this signal to switch the voltage it supplies to the motor (from VM) on and off at f_PWM, which
 will provide an average voltage to the motor. If the input from VM is 6V, at 49 CCR the motors
 will see 3V.
-
-### Ranging sensors
-
-For detecting the distance to the enemy robot, we use up to three ST's VL53L0X sensors, mounted on
-Adafruit breakout boards. They connect to the MCU over I2C, in addition to a GPIO pin, for data
-ready interrupts, and an XSHUT pin, for reprogramming the I2C address so we can have multiple of
-the same sensor connecting on the same bus. The sensors are configured for continuous ranging, and
-they will trigger an interrupt via the GPIO pin to an EXTI pin on the MCU when data is ready. That
-will toggle a flag in the state machine, which will prompt it to request the latest data over I2C
-in the main loop.
-
-With fast mode I2C at 400KHz (which is the max I2C clock frequency for the Vl53L0X), reading from
-one sensor once the interrupt is triggered only takes 4ms, whereas with 100KHz it took about 14ms.
-If we want to get this down further, we could consider I2C with DMA, but it is likely overkill.
-
-The driver was downloaded from ST: https://www.st.com/en/embedded-software/stsw-img005.html, which
-came with platform setup files (platform.c, i2c_platform.c) that were made for Windows, with Windows
-dynamic libraries included. We rewrote these to rather work with our STM32 HAL for I2C
-communication. The driver API is unaltered, but we wrap it in our own ranging API to make only the
-relevant parts available to the robot state machine.
-
-We may write our own driver in the future, since the ST one is quite large, more than doubling the
-firmware flash size. However, it is an advanced device with a lot of features, and it's poorly
-documented, there is no memory map in the datasheet, for example. This would have to be extracted
-from the driver if we were to create a driver.

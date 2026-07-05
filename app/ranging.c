@@ -10,7 +10,7 @@
 #define RANGING_ADDR_MIDDLE 0x32
 #define RANGING_ADDR_RIGHT 0x34
 
-// We the range lower than the max size of the arena since it will rarely need it, and it makes
+// We set the range lower than the max size of the arena since it will rarely need it, and it makes
 // testing easier. The sensor can handle up to 1M well with the lowest timing budget, however,
 // depending on the amount of ambient light.
 #define RANGING_MAX_DISTANCE_MM 400U

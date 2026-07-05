@@ -1,9 +1,9 @@
 # Line Detection
 
-- [QRE1113][qre1113] analog infrared reflective object sensor, on a [Sparkfun breakout board][qre1113-board].
-- [STM32F303K8T6][mcu] MCU on-chip successive approximation register (SAR)[analog-to-digital converter][rm-0316] (ADC).
-
-// TODO: how it fits into the state machine?
+- Four [QRE1113][qre1113] analog infrared reflective object sensor, on a
+[Sparkfun breakout board][qre1113-board].
+- [STM32F303K8T6][mcu] MCU on-chip successive approximation register
+(SAR)[analog-to-digital converter][rm-0316] (ADC).
 
 <details>
 <summary><strong>Sparkfun QRE1113 Analog Schematic</strong></summary>
