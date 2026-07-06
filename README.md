@@ -5,7 +5,7 @@ hardware choices were heavily inspired by [`artfulbytes`](https://github.com/art
 excellent youtube series where he made a sumo robot from scratch. See his project code
 [here](https://github.com/artfulbytes/nsumo_video/tree/main).
 
-## Hardware
+## Hardware overview
 
 - STM32F303K8T6 MCU with 72MHz CPU (64MHz with HSI), 64 KB flash and 12 KB SRAM. 
     - Data sheet: https://www.st.com/resource/en/datasheet/stm32f303c6.pdf
@@ -28,6 +28,7 @@ Documentation of the robot's core functionality can be found in the docs directo
 - [Dohyo border line detection](docs/line-detection.md).
 - [Remote start IR signal handling](docs/ir-remote.md).
 - [Enemy detection with IR ToF sensors](docs/ranging.md).
+- [Motor control](docs/motor-control.md).
 
 ## Development
 
@@ -128,54 +129,3 @@ To download the jar file for platuml: `mise run plantuml-setup`. The path it dow
 in a mise variable, which may need to be adjusted to your local system.
 
 To generate a UML png: `mise run plantuml-generate`. Defaults to state machine diagram.
-
-### Motor driver
-
-We cannot power the motors directly from the MCU, as they need 3-6V, and will draw up to 0.8A each
-when stalling. The STM32F303K8T6 is rated for at most 25mA from any output pin, and 80mA total
-across all pins. Therefore, we will use a MOSFET based H-bridge motor driver, the TB6612FNG.
-
-- It takes power directly from a power source (VM), up to 6V, and uses PWM to control the output
-voltage to the motors. Thus the MCU is only indirectly involved in powering the motors.
-- The motor driver does not have a clock, the MCU provides the PWM signal using a timer peripheral,
-and supplies it to a motor driver input pin. It has two PWM input pins, one for each motor.
-- For each motor, the driver has two additional input pins, used to control the direction of the
-motor. These open and close transistors in the H-bridge, which reverses the polarity of the voltage.
-This can be used to control the direction of the motors, clockwise or counter-clockwise.
-
-#### Motor PWM
-
-It is important that the frequency of the PWM signal is high enough that we avoid current ripples,
-which happens when the switching period is slow enough that the motor does not see the average
-voltage we want it to see, rather it will see constantly fluctuating voltage, which means the
-motor will not spin smoothly.
-
-To generate the PWM, we use a timer peripheral, TIM2 on the MCU. TIM2 is on the APB1 (advanced
-peripheral bus 1) bus. The system clock is set to 64MHz, and the APB1 prescaler is set to 32,
-so the TIM2 clock is 2 MHz. Furthermore:
-
-- TIM2 is set to count up.
-- The TIM2 prescaler (PSC) is set to 32, and the period is set to 100. The timer will continously
-count up to this period value at the clock frequency, then reset. 
-
-We can calculate the PWM frequency from these values.
-
-f_PWM = f_TIM / ((PSC + 1)(ARR + 1))
-f_PWM = 64MHz / (32 * 100)
-f_PWM = 20KHz
-One period is 50us.
-
-We can control the duty cycle, how long each pulse is HIGH, from our application, by setting the
-capture and compare register (CCR) for the timer channel we are using to generate the PWM signal.
-When the counter is smaller than the CCR value, the channel output will be HIGH. When it is greater
-than or equal to the CCR value, channel output will be low.
-
-For example, if we set the CCR register to 50:
-
-- When the counter is between 0 and 49, the output will be HIGH.
-- When the counter is between 49 and 99, the output will be LOW.
-
-This leaves the PWM duty cycle at 50%, as it is HIGH 50% of the period. The motor driver will use
-this signal to switch the voltage it supplies to the motor (from VM) on and off at f_PWM, which
-will provide an average voltage to the motor. If the input from VM is 6V, at 49 CCR the motors
-will see 3V.
