@@ -37,7 +37,7 @@ struct StateTransition
     State to;
 };
 
-// See docs/state.png for state machine transitions.
+// See docs/media/state.png for state machine transitions.
 static const struct StateTransition state_transitions[] = {
     {STATE_STANDBY, EVT_ENEMY, STATE_STANDBY},
     {STATE_STANDBY, EVT_LINE, STATE_STANDBY},
@@ -181,7 +181,7 @@ static StateEvent process_input(void)
 
     if (enemy.bearing != BEARING_NONE)
     {
-        // DEBUG_PRINTF("Enemy bearing: %d, distance: %dmm, state: %d\n", enemy.bearing, enemy.distance_mm, ctx.state);
+        DEBUG_PRINTF("Enemy bearing: %d, distance: %dmm, state: %d\n", enemy.bearing, enemy.distance_mm, ctx.state);
         return EVT_ENEMY;
     }
 

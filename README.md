@@ -3,7 +3,7 @@
 The idea for this project, the design of the firmware statemachine, as well as a lot of the
 hardware choices were heavily inspired by [`artfulbytes`](https://github.com/artfulbytes)
 excellent youtube series where he made a sumo robot from scratch. See his project code
-[here](https://github.com/artfulbytes/nsumo_video/tree/main).
+[here](https://github.com/artfulbytes/nsumo_video).
 
 ## Hardware overview
 
@@ -20,6 +20,49 @@ regardless of battery voltage, which fluctuates with charge.
     - https://www.jsumo.com/mp12-micro-gear-motor-6v-500rpm
 - 33mm diameter, aluminium wheels with high-friction rubber.
     - https://www.jsumo.com/slt20-aluminum-silicone-wheel-set-33mmx20mm-pair
+
+## Firmware overview
+
+### State machine
+
+Our firmware is centered around a finite state machine, defined in `app/state.c`. In the firmware
+main function, we run a while loop that checks sensor inputs on each iteration, end emits an event
+depending on the input. This event is fed into the state machine, and in combination with the
+current state, it arrives at the next state using a lookup table of valid state transitions.
+
+![Sumo robot state machine diagram](docs/media/state.png)
+
+Note that we do not simply poll the sensor inputs on each iteration, we rely on interrupts and DMA
+to avoid blocking the main loop. For more information on that, see the documentation for line
+sensors and ranging sensors below.
+
+### Hardware initialization
+
+We use the STM32 HAL to configure and interact with the hardware, and we use the
+[STM32CubeMX](https://www.st.com/en/development-tools/stm32cubemx.html) software to generate the
+hardware initialization code, as well as the initial CMake configuration. STM32CubeMX would put all
+generated initialization code in the `Src/main.c` file, but we've since moved some of the
+initialization code out, so it lives next to the relevant firmware. For example, the timer
+peripheral initialization code that is used to enable input capture for the IR remote lives in
+`app/drivers/ir_remote.c`.
+
+STM32CubeMX is a great tool and it has been very useful, so we may stop fighting it and move
+everything back to the place it was originally generated in the future.
+
+> The STM32CubeMX manifest has been kept up to date with manual changes to the generated code,
+> so if you need to use STM32CubeMX to make changes to initialization code, or you want to easily
+> visualize the hardware configuration, you can initialize a STM32CubeMX project from the
+> `sumo.ioc` file in the root of this repo.
+
+
+### Summary
+
+- Our application code and our driver code lives in `app` and `app/drivers`.
+- The STM32CubeMX generated source and header files live in `Src` and `Inc`, with some hardware
+initialization code moved to `app/drivers`.
+- External libraries live in `external`, at the time of writing it just holds a Segger RTT library
+git submodule, used for logging in debug builds.
+- Integration and unit tests live in `tests`.
 
 ## Documentation
 
@@ -128,4 +171,4 @@ as mise cannot manage it.
 To download the jar file for platuml: `mise run plantuml-setup`. The path it downloads to is set
 in a mise variable, which may need to be adjusted to your local system.
 
-To generate a UML png: `mise run plantuml-generate`. Defaults to state machine diagram.
+To generate a UML png: `mise run plantuml-generate`. Defaults to state machine diagram UML.
