@@ -42,14 +42,14 @@ configured for input capturing on a GPIO input pin.
 - The timer peripheral is configured to increment a counter at a given frequency, specified by the
 clock source frequency, which can be adjusted by configuring the prescaler. In our case, we divide
 the HSI 64MHz clock source by 64, setting the timer clock frequency to 1MHz.
-- The timer peripheral we use is 16 bit, and we set the period to the max unsigned 16 bit value,
-65535. The counter counts up to this value, then starts over from 0. At 1MHz, each counter
-increment is 1μs.
+- The timer peripheral we use is 16 bit, and we set the period to the max unsigned 16 bit value
+(65535). The counter counts up to this value, then starts over from 0. At 1MHz, the counter is
+incremented every microsecond.
 - On a falling edge on the input pin, an input capture interrupt is triggered, which captures the
 current count at the instant the falling edge occurred.
 - We store the captured count, and subtract it from the previously recorded count, to get the
 time passed between captures. We also store the pulse count, starting from 0, and incrementing for
-each captured timer count.
+each input capture interrupt.
 - For now, we simply do nothing except increment the pulse count on the first two pulses, which
 indicate the start of signal. Then, we start decoding the pulses as bits according to the NECx
 protocol. If a segment (pulse and space) is larger than the protocol allows, we reset.

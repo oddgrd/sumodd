@@ -31,21 +31,26 @@ which happens when the switching period is slow enough that the motor does not s
 voltage we want it to see, rather it will see signficantly fluctuating voltage, which means the
 motor will not spin smoothly.
 
-To generate the PWM signal, we use a timer peripheral on the MCU. The PWM frequency is determined
-by the timer input clock, the prescaler register, and the auto-reload register:
+To generate the PWM signal, we use a timer peripheral on the MCU. The PWM frequency (f_PWM) is
+determined by the timer input clock (f_TIM), the prescaler register (PSC), and the auto-reload
+register (ARR):
 
-f_PWM = f_TIM / ((PSC + 1) * (ARR + 1))
+`f_PWM = f_TIM / ((PSC + 1) * (ARR + 1))`
 
 For example, if the timer input clock is 64 MHz and we configure:
 
+```
 PSC = 31
 ARR = 99
+```
 
 then:
 
+```
 f_PWM = 64 MHz / ((31 + 1) * (99 + 1))
       = 64 MHz / (32 * 100)
       = 20 kHz
+```
 
 This gives a PWM period of 50 µs.
 

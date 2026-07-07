@@ -68,10 +68,10 @@ git submodule, used for logging in debug builds.
 
 Documentation of the robot's core functionality can be found in the docs directory.
 
-- [Dohyo border line detection](docs/line-detection.md).
-- [Remote start IR signal handling](docs/ir-remote.md).
-- [Enemy detection with IR ToF sensors](docs/ranging.md).
-- [Motor control](docs/motor-control.md).
+- [Dohyo border line detection](docs/line-detection.md)
+- [Remote start IR signal handling](docs/ir-remote.md)
+- [Enemy detection with IR ToF sensors](docs/ranging.md)
+- [Motor control](docs/motor-control.md)
 
 ## Development
 
