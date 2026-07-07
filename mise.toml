@@ -90,9 +90,9 @@ curl -L https://github.com/plantuml/plantuml/releases/download/v1.2026.5/plantum
 '''
 
 [tasks.plantuml-generate]
-description = "Download PlantUML jar"
+description = "Generate a PNG of the PlantUML diagram"
 run = '''
-java -jar {{vars.plantuml_jar}} docs/state.uml
+java -jar {{vars.plantuml_jar}} -o media docs/state.uml
 '''
 
 [tasks.lint]
