@@ -1,5 +1,5 @@
 @startuml
-!theme blueprint
+!theme crt-amber
 hide empty description
 <style>
 element {

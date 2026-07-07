@@ -1,12 +1,13 @@
 # Sumodd mini-sumo robot
 
+Sumodd is a mini-sumo robot developed from scratch, including firmware in C, 3D modelling and PCB
+design. See competition rules and robot requirements for mini-sumo robots
+[here](https://robotex.international/wp-content/uploads/2025/11/Mini-sumo-rules-2025-ENG.pdf).
+
 The idea for this project, the design of the firmware statemachine, as well as a lot of the
 hardware choices were heavily inspired by [`artfulbytes`](https://github.com/artfulbytes)
-excellent youtube series where he made a sumo robot from scratch. See his project code
-[here](https://github.com/artfulbytes/nsumo_video).
-
-See competition rules and robot requirements for mini-sumo robots
-[here](https://robotex.international/wp-content/uploads/2025/11/Mini-sumo-rules-2025-ENG.pdf).
+excellent [youtube series](https://www.youtube.com/watch?v=g9KbXJydf8I) where he made a sumo robot
+from scratch. See his project code [here](https://github.com/artfulbytes/nsumo_video).
 
 ## Hardware overview
 
