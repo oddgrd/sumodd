@@ -5,6 +5,9 @@ hardware choices were heavily inspired by [`artfulbytes`](https://github.com/art
 excellent youtube series where he made a sumo robot from scratch. See his project code
 [here](https://github.com/artfulbytes/nsumo_video).
 
+See competition rules and robot requirements for mini-sumo robots
+[here](https://robotex.international/wp-content/uploads/2025/11/Mini-sumo-rules-2025-ENG.pdf).
+
 ## Hardware overview
 
 - STM32F303K8T6 MCU with 72MHz CPU (64MHz with HSI), 64 KB flash and 12 KB SRAM. 
