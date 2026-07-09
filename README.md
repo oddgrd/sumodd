@@ -11,7 +11,7 @@ from scratch. See his project code [here](https://github.com/artfulbytes/nsumo_v
 
 ## Hardware overview
 
-- STM32F303K8T6 MCU with 72MHz CPU (64MHz with HSI), 64 KB flash and 12 KB SRAM. 
+- STM32F303K8T6 MCU with 72MHz CPU (64MHz with internal clock), 64 KB flash and 12 KB SRAM.
     - Data sheet: https://www.st.com/resource/en/datasheet/stm32f303c6.pdf
 - Sensors:
     - VL53LOX time-of-flight sensors for detecting enemies.
@@ -25,7 +25,26 @@ regardless of battery voltage, which fluctuates with charge.
 - 33mm diameter, aluminium wheels with high-friction rubber.
     - https://www.jsumo.com/slt20-aluminum-silicone-wheel-set-33mmx20mm-pair
 
+<details>
+<summary><strong>Schematic and PCB layout</strong></summary>
+
+The kicad files for the schematic and PCB layout are available in the
+[sumo-schema repository](https://github.com/oddgrd/sumo-schema), including detailed documentation
+for the schematic.
+
+![Schematic](docs/media/schematic.png)
+![PCB layout](docs/media/pcb-layout.png)
+
+</details>
+
 ## Firmware overview
+
+- Our application code and our driver code lives in `app` and `app/drivers`.
+- The [STM32CubeMX generated](#hardware-initialization) source and header files live in `Src` and
+`Inc`, with some hardware initialization code moved to `app/drivers`.
+- External libraries live in `external`, at the time of writing it just holds a Segger RTT library
+git submodule, used for logging in debug builds.
+- Integration and unit tests live in `tests`.
 
 ### State machine
 
@@ -57,16 +76,6 @@ everything back to the place it was originally generated in the future.
 > so if you need to use STM32CubeMX to make changes to initialization code, or you want to easily
 > visualize the hardware configuration, you can initialize a STM32CubeMX project from the
 > `sumo.ioc` file in the root of this repo.
-
-
-### Summary
-
-- Our application code and our driver code lives in `app` and `app/drivers`.
-- The STM32CubeMX generated source and header files live in `Src` and `Inc`, with some hardware
-initialization code moved to `app/drivers`.
-- External libraries live in `external`, at the time of writing it just holds a Segger RTT library
-git submodule, used for logging in debug builds.
-- Integration and unit tests live in `tests`.
 
 ## Documentation
 
