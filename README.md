@@ -25,17 +25,11 @@ regardless of battery voltage, which fluctuates with charge.
 - 33mm diameter, aluminium wheels with high-friction rubber.
     - https://www.jsumo.com/slt20-aluminum-silicone-wheel-set-33mmx20mm-pair
 
-<details>
-<summary><strong>Schematic and PCB layout</strong></summary>
-
 The kicad files for the schematic and PCB layout are available in the
-[sumo-schema repository](https://github.com/oddgrd/sumo-schema), including detailed documentation
-for the schematic.
+[sumodd-hardware repository](https://github.com/oddgrd/sumodd-hardware),
+including further documentation for the parts used and their layout on the board.
 
 ![Schematic](docs/media/schematic.png)
-![PCB layout](docs/media/pcb-layout.png)
-
-</details>
 
 ## Firmware overview
 
