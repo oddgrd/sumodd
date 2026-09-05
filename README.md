@@ -11,6 +11,10 @@ from scratch. See his project code [here](https://github.com/artfulbytes/nsumo_v
 
 ## Hardware overview
 
+The schematic and PCB layout KiCad files for the Sumodd motherboard are available in the
+[sumodd-hardware repository](https://github.com/oddgrd/sumodd-hardware), with more detailed
+documentation of the parts used and their layout on the board.
+
 - STM32F303K8T6 MCU with 72MHz CPU (64MHz with internal clock), 64 KB flash and 12 KB SRAM.
     - Data sheet: https://www.st.com/resource/en/datasheet/stm32f303c6.pdf
 - Sensors:
@@ -24,10 +28,6 @@ regardless of battery voltage, which fluctuates with charge.
     - https://www.jsumo.com/mp12-micro-gear-motor-6v-500rpm
 - 33mm diameter, aluminium wheels with high-friction rubber.
     - https://www.jsumo.com/slt20-aluminum-silicone-wheel-set-33mmx20mm-pair
-
-The kicad files for the schematic and PCB layout are available in the
-[sumodd-hardware repository](https://github.com/oddgrd/sumodd-hardware),
-including further documentation for the parts used and their layout on the board.
 
 ![Schematic](docs/media/schematic.png)
 
