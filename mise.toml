@@ -14,8 +14,6 @@ gpg_verify = true
 auto_install = true
 lockfile = true
 cargo.binstall = true
-# Needed for conda tool repository.
-experimental = true
 
 [vars]
 plantuml_jar = "~/.local/share/plantuml/plantuml.jar"
