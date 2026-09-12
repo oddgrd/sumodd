@@ -5,7 +5,7 @@
 #include "debug.h"
 #include "drivers/motor_driver.h"
 
-#define STATE_RETREAT_DURATION_MS (600U)
+#define STATE_RETREAT_DURATION_MS (450U)
 
 static RetreatState next_retreat_state(const struct StateRetreatCtx *ctx)
 {
@@ -52,7 +52,7 @@ static void state_retreat_run(struct StateRetreatCtx *ctx)
     {
     case RETREAT_STATE_REVERSE:
         ctx->state = RETREAT_STATE_REVERSE;
-        motor_drive(60, DRIVE_REVERSE);
+        motor_drive(70, DRIVE_REVERSE);
         break;
     case RETREAT_STATE_FORWARD:
         ctx->state = RETREAT_STATE_FORWARD;
@@ -60,19 +60,19 @@ static void state_retreat_run(struct StateRetreatCtx *ctx)
         break;
     case RETREAT_STATE_FORWARD_ARC_LEFT:
         ctx->state = RETREAT_STATE_FORWARD_ARC_LEFT;
-        motor_drive(45, DRIVE_FORWARD_ARC_LEFT);
+        motor_drive(70, DRIVE_FORWARD_ARC_LEFT);
         break;
     case RETREAT_STATE_FORWARD_ARC_RIGHT:
         ctx->state = RETREAT_STATE_FORWARD_ARC_RIGHT;
-        motor_drive(45, DRIVE_FORWARD_ARC_RIGHT);
+        motor_drive(70, DRIVE_FORWARD_ARC_RIGHT);
         break;
     case RETREAT_STATE_REVERSE_ARC_LEFT:
         ctx->state = RETREAT_STATE_REVERSE_ARC_LEFT;
-        motor_drive(45, DRIVE_REVERSE_ARC_LEFT);
+        motor_drive(70, DRIVE_REVERSE_ARC_LEFT);
         break;
     case RETREAT_STATE_REVERSE_ARC_RIGHT:
         ctx->state = RETREAT_STATE_REVERSE_ARC_RIGHT;
-        motor_drive(45, DRIVE_REVERSE_ARC_RIGHT);
+        motor_drive(70, DRIVE_REVERSE_ARC_RIGHT);
         break;
     case RETREAT_STATE_NONE:
         break;

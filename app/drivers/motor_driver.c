@@ -108,8 +108,6 @@ static void motor_driver_set_direction(MotorDirection direction)
     }
 }
 
-// TODO: assert that number is within 0-99 range, and/or use a newtype if possible.
-// TODO: make each motor's speed individually configurable.
 static void motor_driver_set_speed(uint8_t speed_left, uint8_t speed_right)
 {
     if (speed_left > 99 || speed_right > 99)
@@ -118,6 +116,11 @@ static void motor_driver_set_speed(uint8_t speed_left, uint8_t speed_right)
             "Speed should be between 0 and 99, received speed left: %d, speed right: %d", speed_left, speed_right);
         Error_Handler();
     }
+
+    // Clamp speed to valid value.
+    speed_left = speed_left > 99 ? 99 : speed_left;
+    speed_right = speed_right > 99 ? 99 : speed_right;
+
     __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, speed_left);
     __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, speed_right);
 }
@@ -137,22 +140,23 @@ void motor_drive(uint8_t speed, DriveDirection direction)
     // To achieve the wide arc turns, we simply halve the speed on one side.
     case DRIVE_FORWARD_ARC_LEFT:
         motor_driver_set_direction(FORWARD);
-        uint8_t speed_right = speed >> 1;
+        // Set right speed to 75% of left to turn widely to the left.
+        uint8_t speed_right = speed - (speed >> 2);
         motor_driver_set_speed(speed, speed_right);
         break;
     case DRIVE_FORWARD_ARC_RIGHT:
         motor_driver_set_direction(FORWARD);
-        uint8_t speed_left = speed >> 1;
+        uint8_t speed_left = speed - (speed >> 2);
         motor_driver_set_speed(speed_left, speed);
         break;
     case DRIVE_REVERSE_ARC_LEFT:
         motor_driver_set_direction(REVERSE);
-        uint8_t speed_rev_right = speed >> 1;
+        uint8_t speed_rev_right = speed - (speed >> 2);
         motor_driver_set_speed(speed, speed_rev_right);
         break;
     case DRIVE_REVERSE_ARC_RIGHT:
         motor_driver_set_direction(REVERSE);
-        uint8_t speed_rev_left = speed >> 1;
+        uint8_t speed_rev_left = speed - (speed >> 2);
         motor_driver_set_speed(speed_rev_left, speed);
         break;
     case DRIVE_SPIN_LEFT:
