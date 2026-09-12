@@ -21,7 +21,7 @@ endif()
 # Set the project name
 set(CMAKE_PROJECT_NAME sumo)
 
-# Enable compile command to ease indexing with e.g. clangd
+# Enable compile command to ease indexing with e.g. clangd, cppcheck
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
 # This allows us to build the firmware with alternative init and run functions, which makes it

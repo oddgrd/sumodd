@@ -1,16 +1,13 @@
-# NOTE: the tools manifest is not exhaustive.
 [tools]
-cmake = "4.3.1"
+"vfox:jdx/vfox-gcc-arm-none-eabi" = "13.3.Rel1~amd64"
+"aqua:Kitware/CMake" = "4.3.1"
+"conda:cppcheck" = "2.21.0"
 "cargo:probe-rs-tools" = "0.31.0"
-# For PlantUML. Graphviz is also required, but must be installed manually.
-java = "11"
 python = "3.14"
 uv = "0.11.19"
-
-# Dependencies required but not covered by mise tools:
-# Graphviz
-# cppcheck
-# gcc
+# For PlantUML diagrams.
+java = "11"
+"conda:graphviz" = "14.1.2"
 
 [settings]
 gpg_verify = true
@@ -96,14 +93,23 @@ java -jar {{vars.plantuml_jar}} -o media docs/state.uml
 '''
 
 [tasks.lint]
-description = "Lint firmware app files"
+description = '''
+Lint firmware app files with compilation context from cmake compile_commands.json, surpressing
+warnings from ST's VL53L0X and HAL drivers.
+'''
 run = '''
-cppcheck --quiet --enable=all --error-exitcode=1 \
-      --inline-suppr \
-      --suppress=missingInclude \
-      --suppress=unusedStructMember \
-      --suppress=missingIncludeSystem \
-      --suppress=unusedFunction app/* -i app/drivers/vl53l0x
+cmake --preset debug
+
+cppcheck \
+      --project=build/debug/compile_commands.json \
+      --file-filter='app/**' \
+      --suppress='*:Drivers/**' \
+      --suppress='*:app/drivers/vl53l0x/**' \
+      -D__GNUC__ \
+      --quiet \
+      --error-exitcode=1 \
+      --enable=warning,style,performance,portability \
+      --inline-suppr
 '''
 
 [tasks.lint-python]
