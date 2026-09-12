@@ -1,0 +1,58 @@
+name: Lint and test
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+env:
+  # We don't need every tool in the manifest for CI.
+  MISE_TASK_RUN_AUTO_INSTALL: "false"
+
+jobs:
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes build-essential
+
+      - name: Set up mise
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c
+        with:
+          install_args: cmake
+
+      - name: Run unit tests
+        run: mise run test
+
+  lint:
+    name: Cppcheck
+    runs-on: ubuntu-latest
+
+    env:
+      MISE_TASK_RUN_AUTO_INSTALL: "false"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up mise
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c
+        with:
+          install_args: >-
+            cmake
+            conda:cppcheck
+            vfox:jdx/vfox-gcc-arm-none-eabi
+
+      - name: Run cppcheck
+        run: mise run lint
