@@ -30,7 +30,7 @@ jobs:
       - name: Set up mise
         uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c
         with:
-          install_args: cmake
+          install_args: aqua:Kitware/CMake
 
       - name: Run unit tests
         run: mise run test
@@ -50,7 +50,7 @@ jobs:
         uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c
         with:
           install_args: >-
-            cmake
+            aqua:Kitware/CMake
             conda:cppcheck
             vfox:jdx/vfox-gcc-arm-none-eabi
 

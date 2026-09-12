@@ -1,6 +1,6 @@
 [tools]
 "vfox:jdx/vfox-gcc-arm-none-eabi" = "13.3.Rel1~amd64"
-cmake = "4.3.1"
+"aqua:Kitware/CMake" = "4.3.1"
 "conda:cppcheck" = "2.21.0"
 "cargo:probe-rs-tools" = "0.31.0"
 python = "3.14"
