@@ -3,6 +3,7 @@
 "aqua:Kitware/CMake" = "4.3.1"
 "conda:cppcheck" = "2.21.0"
 "cargo:probe-rs-tools" = "0.31.0"
+clang-format = "23.1.2"
 python = "3.14"
 uv = "0.11.19"
 # For PlantUML diagrams.
@@ -117,3 +118,9 @@ description = "Lint all Python files"
 run = '''
 uvx ruff check
 '''
+
+[tasks.format]
+run = "./scripts/clang-format.sh -i"
+
+[tasks."format:check"]
+run = "./scripts/clang-format.sh --dry-run --Werror"
