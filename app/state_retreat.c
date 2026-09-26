@@ -1,9 +1,9 @@
-#include "main.h"
-
 #include "state_retreat.h"
-#include "state.h"
+
 #include "debug.h"
 #include "drivers/motor_driver.h"
+#include "main.h"
+#include "state.h"
 
 #define STATE_RETREAT_DURATION_MS (450U)
 

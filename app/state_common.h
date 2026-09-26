@@ -1,5 +1,7 @@
 #pragma once
+
 #include <stdint.h>
+
 #include "drivers/line_sensor.h"
 #include "ranging.h"
 

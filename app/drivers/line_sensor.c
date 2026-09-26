@@ -1,10 +1,12 @@
-#include "main.h"
 #include "line_sensor.h"
-#include "state.h"
-#include <stdint.h>
+
 #include <stdbool.h>
-#include <adc.h>
-#include <tim.h>
+#include <stdint.h>
+
+#include "adc.h"
+#include "main.h"
+#include "state.h"
+#include "tim.h"
 
 // TODO: IR remote command to adjust threshold?
 #define LINE_DETECTED_THRESHOLD 500
@@ -22,13 +24,13 @@ struct LineSamples
 
 LineType get_line(void)
 {
-    struct LineSamples samples = {
-        .front_left = adc_buffer[0],
-        .front_right = adc_buffer[1],
-        .rear_right = adc_buffer[2],
-        .rear_left = adc_buffer[3]};
+    struct LineSamples samples = {.front_left = adc_buffer[0],
+                                  .front_right = adc_buffer[1],
+                                  .rear_right = adc_buffer[2],
+                                  .rear_left = adc_buffer[3]};
 
-    if (samples.front_left < LINE_DETECTED_THRESHOLD && samples.front_right < LINE_DETECTED_THRESHOLD)
+    if (samples.front_left < LINE_DETECTED_THRESHOLD &&
+        samples.front_right < LINE_DETECTED_THRESHOLD)
     {
         return LINE_FRONT;
     }
@@ -43,7 +45,8 @@ LineType get_line(void)
         return LINE_LEFT;
     }
 
-    if (samples.front_right < LINE_DETECTED_THRESHOLD && samples.rear_right < LINE_DETECTED_THRESHOLD)
+    if (samples.front_right < LINE_DETECTED_THRESHOLD &&
+        samples.rear_right < LINE_DETECTED_THRESHOLD)
     {
         return LINE_RIGHT;
     }

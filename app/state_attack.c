@@ -1,8 +1,8 @@
-#include "main.h"
-
-#include "state.h"
 #include "state_attack.h"
+
 #include "drivers/motor_driver.h"
+#include "main.h"
+#include "state.h"
 
 void state_attack_enter(struct StateAttackCtx *ctx, State from, StateEvent event)
 {

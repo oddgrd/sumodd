@@ -1,8 +1,8 @@
-#include "main.h"
-
-#include "state.h"
 #include "state_search.h"
+
 #include "drivers/motor_driver.h"
+#include "main.h"
+#include "state.h"
 
 void state_search_enter(struct StateSearchCtx *ctx, State from, StateEvent event)
 {

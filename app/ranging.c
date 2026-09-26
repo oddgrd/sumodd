@@ -1,8 +1,9 @@
-#include "main.h"
-#include "drivers/vl53l0x/vl53l0x_api.h"
 #include "ranging.h"
+
 #include "debug.h"
+#include "drivers/vl53l0x/vl53l0x_api.h"
 #include "i2c.h"
+#include "main.h"
 
 // Default I2C address of the device, same for all sensors after reset.
 #define VL53L0X_DEFAULT_ADDRESS 0x52
@@ -98,7 +99,8 @@ static void ranging_update(void)
         }
     }
 
-    // DEBUG_PRINTF("l:%d m:%d r:%d\n", ranging_state.sensor[RANGING_LEFT].range_mm, ranging_state.sensor[RANGING_MIDDLE].range_mm, ranging_state.sensor[RANGING_RIGHT].range_mm);
+    // DEBUG_PRINTF("l:%d m:%d r:%d\n", ranging_state.sensor[RANGING_LEFT].range_mm,
+    // ranging_state.sensor[RANGING_MIDDLE].range_mm, ranging_state.sensor[RANGING_RIGHT].range_mm);
 }
 
 static bool valid_range(int16_t range_mm)
@@ -155,7 +157,8 @@ VL53L0X_Error ranging_init(void)
         ranging_state.sensor[i].data_ready = false;
 
         // Set all low to reset them, and we will bring them up one by one to set their address.
-        HAL_GPIO_WritePin(ranging_state.sensor[i].xshut_port, ranging_state.sensor[i].xshut_pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(ranging_state.sensor[i].xshut_port, ranging_state.sensor[i].xshut_pin,
+                          GPIO_PIN_RESET);
     }
     HAL_Delay(10);
     int ret = VL53L0X_ERROR_NONE;
@@ -165,14 +168,16 @@ VL53L0X_Error ranging_init(void)
         DEBUG_PRINTF("Initializing device with address: %x\n", ranging_config[i].device_address);
 
         // First, set the xshut of the sensor we are configuring high.
-        HAL_GPIO_WritePin(ranging_state.sensor[i].xshut_port, ranging_state.sensor[i].xshut_pin, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(ranging_state.sensor[i].xshut_port, ranging_state.sensor[i].xshut_pin,
+                          GPIO_PIN_SET);
         HAL_Delay(2);
 
         // Use the default address for the change address I2C call, since it will be the address of
         // all the devices after the reset.
         ranging_state.sensor[i].dev.I2cDevAddr = VL53L0X_DEFAULT_ADDRESS;
 
-        ret = VL53L0X_SetDeviceAddress(&ranging_state.sensor[i].dev, ranging_config[i].device_address);
+        ret = VL53L0X_SetDeviceAddress(&ranging_state.sensor[i].dev,
+                                       ranging_config[i].device_address);
         if (ret != VL53L0X_ERROR_NONE)
         {
             DEBUG_PRINTF("Failed to set device address for device, error: %d\n", ret);
@@ -210,26 +215,27 @@ VL53L0X_Error ranging_init(void)
         // emitted from the VCSEL (vertical-cavity surface-emitting laser).
         uint32_t refSpadCount = 0;
         uint8_t isApertureSpads = 0;
-        ret = VL53L0X_PerformRefSpadManagement(&ranging_state.sensor[i].dev, &refSpadCount, &isApertureSpads);
+        ret = VL53L0X_PerformRefSpadManagement(&ranging_state.sensor[i].dev, &refSpadCount,
+                                               &isApertureSpads);
         if (ret != VL53L0X_ERROR_NONE)
         {
             DEBUG_PRINTF("Failed to perform spad management for device, error: %d\n", ret);
             return ret;
         };
 
-        DEBUG_PRINTF(
-            "Initialized sensor with spad count: %d, aperture spads enabled: %d\n",
-            refSpadCount,
-            isApertureSpads);
+        DEBUG_PRINTF("Initialized sensor with spad count: %d, aperture spads enabled: %d\n",
+                     refSpadCount, isApertureSpads);
 
-        ret = VL53L0X_SetDeviceMode(&ranging_state.sensor[i].dev, VL53L0X_DEVICEMODE_CONTINUOUS_RANGING);
+        ret = VL53L0X_SetDeviceMode(&ranging_state.sensor[i].dev,
+                                    VL53L0X_DEVICEMODE_CONTINUOUS_RANGING);
         if (ret != VL53L0X_ERROR_NONE)
         {
             DEBUG_PRINTF("Failed to set device mode for device, error: %d\n", ret);
             return ret;
         };
 
-        ret = VL53L0X_SetMeasurementTimingBudgetMicroSeconds(&ranging_state.sensor[i].dev, RANGING_TIMING_BUDGET_US);
+        ret = VL53L0X_SetMeasurementTimingBudgetMicroSeconds(&ranging_state.sensor[i].dev,
+                                                             RANGING_TIMING_BUDGET_US);
         if (ret != VL53L0X_ERROR_NONE)
         {
             DEBUG_PRINTF("Failed to set measurement timing budget for device, error: %d\n", ret);
@@ -238,13 +244,15 @@ VL53L0X_Error ranging_init(void)
 
         // Explicitly set the SIGNAL_RATE_FINAL_RANGE (signal strength limit), so we can easily
         // increase it from the default in high ambient light conditions.
-        ret = VL53L0X_SetLimitCheckEnable(&ranging_state.sensor[i].dev, VL53L0X_CHECKENABLE_SIGNAL_RATE_FINAL_RANGE, 1);
+        ret = VL53L0X_SetLimitCheckEnable(&ranging_state.sensor[i].dev,
+                                          VL53L0X_CHECKENABLE_SIGNAL_RATE_FINAL_RANGE, 1);
         if (ret != VL53L0X_ERROR_NONE)
         {
             DEBUG_PRINTF("Failed to enable limit check for signal rate, error: %d\n", ret);
             return ret;
         };
-        ret = VL53L0X_SetLimitCheckValue(&ranging_state.sensor[i].dev, VL53L0X_CHECKENABLE_SIGNAL_RATE_FINAL_RANGE,
+        ret = VL53L0X_SetLimitCheckValue(&ranging_state.sensor[i].dev,
+                                         VL53L0X_CHECKENABLE_SIGNAL_RATE_FINAL_RANGE,
                                          SIGNAL_RATE_LIMIT_MCPS_Q16_16);
         if (ret != VL53L0X_ERROR_NONE)
         {
@@ -254,13 +262,15 @@ VL53L0X_Error ranging_init(void)
 
         // Explicitly set the SIGMA_FINAL_RANGE (standard deviation limit), so we can easily reduce
         // it from the default in high ambient light conditions.
-        ret = VL53L0X_SetLimitCheckEnable(&ranging_state.sensor[i].dev, VL53L0X_CHECKENABLE_SIGMA_FINAL_RANGE, 1);
+        ret = VL53L0X_SetLimitCheckEnable(&ranging_state.sensor[i].dev,
+                                          VL53L0X_CHECKENABLE_SIGMA_FINAL_RANGE, 1);
         if (ret != VL53L0X_ERROR_NONE)
         {
             DEBUG_PRINTF("Failed to enable limit check for sigma, error: %d\n", ret);
             return ret;
         };
-        ret = VL53L0X_SetLimitCheckValue(&ranging_state.sensor[i].dev, VL53L0X_CHECKENABLE_SIGMA_FINAL_RANGE,
+        ret = VL53L0X_SetLimitCheckValue(&ranging_state.sensor[i].dev,
+                                         VL53L0X_CHECKENABLE_SIGMA_FINAL_RANGE,
                                          SIGMA_FINAL_RANGE_MM_Q16_16);
         if (ret != VL53L0X_ERROR_NONE)
         {
@@ -271,10 +281,9 @@ VL53L0X_Error ranging_init(void)
         // Configure the GPIO pin on the device, AKA the DRDY interrupt pin, which will be pulled
         // low when data is ready, and which will trigger an interrupt on the falling edge in an
         // EXTI pin on the MCU.
-        ret = VL53L0X_SetGpioConfig(&ranging_state.sensor[i].dev, 0,
-                                    VL53L0X_DEVICEMODE_CONTINUOUS_RANGING,
-                                    VL53L0X_GPIOFUNCTIONALITY_NEW_MEASURE_READY,
-                                    VL53L0X_INTERRUPTPOLARITY_LOW);
+        ret = VL53L0X_SetGpioConfig(
+            &ranging_state.sensor[i].dev, 0, VL53L0X_DEVICEMODE_CONTINUOUS_RANGING,
+            VL53L0X_GPIOFUNCTIONALITY_NEW_MEASURE_READY, VL53L0X_INTERRUPTPOLARITY_LOW);
         if (ret != VL53L0X_ERROR_NONE)
         {
             DEBUG_PRINTF("Failed to configure gpio pin for device, error: %d\n", ret);

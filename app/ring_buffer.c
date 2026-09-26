@@ -1,8 +1,8 @@
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
-
 #include "ring_buffer.h"
+
+#include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
 
 void ring_buffer_init(RingBuffer *rb, uint8_t *buffer, uint32_t capacity, uint32_t element_size)
 {

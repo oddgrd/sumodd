@@ -1,8 +1,9 @@
 #pragma once
 
-#include <stm32f3xx_hal_tim.h>
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
+
+#include "main.h"
 
 /**
  * @brief Decoded NECx frame.

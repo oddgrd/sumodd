@@ -1,5 +1,7 @@
 #pragma once
 
+#include "main.h"
+
 /**
  * This driver is concerned with configuring and initializing the peripherals needed to read our
  * line detection sensors, specifically an ADC and a timer peripheral. It also defines the DMA

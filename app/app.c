@@ -1,12 +1,12 @@
-#include "main.h"
-#include "drivers/motor_driver.h"
+#include "debug.h"
 #include "drivers/ir_remote.h"
 #include "drivers/line_sensor.h"
-#include "state.h"
-#include "ranging.h"
+#include "drivers/motor_driver.h"
 #include "drivers/vl53l0x/vl53l0x_api.h"
-#include "debug.h"
-#include <tim.h>
+#include "main.h"
+#include "ranging.h"
+#include "state.h"
+#include "tim.h"
 
 void app_init(void)
 {

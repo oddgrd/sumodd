@@ -1,7 +1,7 @@
-#include "main.h"
-
 #include "state_standby.h"
+
 #include "drivers/motor_driver.h"
+#include "main.h"
 
 #define BLINK_INTERVAL_MS (500U)
 

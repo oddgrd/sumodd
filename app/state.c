@@ -1,18 +1,19 @@
-#include "main.h"
+#include "state.h"
 
 #include <stdint.h>
 #include <stdlib.h>
-#include "ring_buffer.h"
-#include "state.h"
+
+#include "debug.h"
 #include "drivers/line_sensor.h"
 #include "drivers/motor_driver.h"
+#include "main.h"
 #include "ranging.h"
-#include "debug.h"
+#include "ring_buffer.h"
+#include "state_attack.h"
 #include "state_common.h"
 #include "state_retreat.h"
-#include "state_standby.h"
 #include "state_search.h"
-#include "state_attack.h"
+#include "state_standby.h"
 
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
 
@@ -39,22 +40,14 @@ struct StateTransition
 
 // See docs/media/state.png for state machine transitions.
 static const struct StateTransition state_transitions[] = {
-    {STATE_STANDBY, EVT_ENEMY, STATE_STANDBY},
-    {STATE_STANDBY, EVT_LINE, STATE_STANDBY},
-    {STATE_STANDBY, EVT_NONE, STATE_STANDBY},
-    {STATE_STANDBY, EVT_IR_CMD, STATE_SEARCH},
-    {STATE_SEARCH, EVT_IR_CMD, STATE_STANDBY},
-    {STATE_SEARCH, EVT_ENEMY, STATE_ATTACK},
-    {STATE_SEARCH, EVT_LINE, STATE_RETREAT},
-    {STATE_SEARCH, EVT_NONE, STATE_SEARCH},
-    {STATE_ATTACK, EVT_ENEMY, STATE_ATTACK},
-    {STATE_ATTACK, EVT_NONE, STATE_SEARCH},
-    {STATE_ATTACK, EVT_LINE, STATE_RETREAT},
-    {STATE_ATTACK, EVT_IR_CMD, STATE_STANDBY},
-    {STATE_RETREAT, EVT_TIMEOUT, STATE_SEARCH},
-    {STATE_RETREAT, EVT_LINE, STATE_RETREAT},
-    {STATE_RETREAT, EVT_IR_CMD, STATE_STANDBY},
-    {STATE_RETREAT, EVT_ENEMY, STATE_RETREAT},
+    {STATE_STANDBY, EVT_ENEMY, STATE_STANDBY},  {STATE_STANDBY, EVT_LINE, STATE_STANDBY},
+    {STATE_STANDBY, EVT_NONE, STATE_STANDBY},   {STATE_STANDBY, EVT_IR_CMD, STATE_SEARCH},
+    {STATE_SEARCH, EVT_IR_CMD, STATE_STANDBY},  {STATE_SEARCH, EVT_ENEMY, STATE_ATTACK},
+    {STATE_SEARCH, EVT_LINE, STATE_RETREAT},    {STATE_SEARCH, EVT_NONE, STATE_SEARCH},
+    {STATE_ATTACK, EVT_ENEMY, STATE_ATTACK},    {STATE_ATTACK, EVT_NONE, STATE_SEARCH},
+    {STATE_ATTACK, EVT_LINE, STATE_RETREAT},    {STATE_ATTACK, EVT_IR_CMD, STATE_STANDBY},
+    {STATE_RETREAT, EVT_TIMEOUT, STATE_SEARCH}, {STATE_RETREAT, EVT_LINE, STATE_RETREAT},
+    {STATE_RETREAT, EVT_IR_CMD, STATE_STANDBY}, {STATE_RETREAT, EVT_ENEMY, STATE_RETREAT},
     {STATE_RETREAT, EVT_NONE, STATE_RETREAT},
 };
 
@@ -101,7 +94,8 @@ static void state_enter(State from, StateEvent event, State to)
     {
         ctx.timer = TIMER_RESET_VALUE;
         ctx.state = to;
-        DEBUG_PRINTF("%s to %s (%s)\n", state_to_str(from), state_to_str(to), state_event_to_str(event));
+        DEBUG_PRINTF("%s to %s (%s)\n", state_to_str(from), state_to_str(to),
+                     state_event_to_str(event));
     }
     switch (to)
     {
@@ -121,10 +115,11 @@ static void state_enter(State from, StateEvent event, State to)
 }
 
 /**
- * @brief Iterate through possible state transitions, entering a state on the first match.
+ * @brief Iterate through possible state transitions, entering a state on the
+ * first match.
  *
- * Enter a state when we match both the previous state and the current event in the transitions
- * table.
+ * Enter a state when we match both the previous state and the current event in
+ * the transitions table.
  */
 static void process_event(StateEvent event)
 {
@@ -142,15 +137,15 @@ static void process_event(StateEvent event)
 }
 
 /**
- * @brief Process and record inputs from all sensors, check the state of the timer, and return an
- * event.
+ * @brief Process and record inputs from all sensors, check the state of the
+ * timer, and return an event.
  */
 static StateEvent process_input(void)
 {
     IrCommand cmd = ir_remote_get_cmd();
     LineType line = get_line();
-    // TODO: if data is ready this will do I2C reads which can take a few ms, we should consider
-    // only doing it in relevant states.
+    // TODO: if data is ready this will do I2C reads which can take a few ms, we
+    // should consider only doing it in relevant states.
     Enemy enemy = ranging_get_enemy();
 
     ctx.state_common.line = line;
@@ -159,7 +154,8 @@ static StateEvent process_input(void)
 
     if (ctx.state == STATE_SEARCH || ctx.state == STATE_ATTACK)
     {
-        // DEBUG_PRINTF("Enemy bearing: %d, distance: %dmm, state: %d\n", enemy.bearing, enemy.distance_mm, ctx.state);
+        // DEBUG_PRINTF("Enemy bearing: %d, distance: %dmm, state: %d\n",
+        // enemy.bearing, enemy.distance_mm, ctx.state);
     }
 
     if (cmd != IR_NONE)
@@ -181,7 +177,8 @@ static StateEvent process_input(void)
 
     if (enemy.bearing != BEARING_NONE)
     {
-        DEBUG_PRINTF("Enemy bearing: %d, distance: %dmm, state: %d\n", enemy.bearing, enemy.distance_mm, ctx.state);
+        DEBUG_PRINTF("Enemy bearing: %d, distance: %dmm, state: %d\n", enemy.bearing,
+                     enemy.distance_mm, ctx.state);
         return EVT_ENEMY;
     }
 

@@ -1,13 +1,14 @@
-#include "main.h"
-#include <stdint.h>
-#include <inttypes.h>
-
 #include "ir_remote.h"
-#include "ring_buffer.h"
-#include "state.h"
+
+#include <inttypes.h>
+#include <stdint.h>
+
 #include "app_config.h"
 #include "debug.h"
-#include <tim.h>
+#include "main.h"
+#include "ring_buffer.h"
+#include "state.h"
+#include "tim.h"
 
 #define CMD_BUFFER_SIZE (8U)
 #define FINAL_PULSE 34U
@@ -88,7 +89,7 @@ static NecStatus parse_necx(const uint32_t raw, NecxDecoded *out)
  *
  * @param htim        Handle to input capture timer peripheral.
  */
-static void nec_capture_isr(TIM_HandleTypeDef *htim)
+static void nec_capture_isr(const TIM_HandleTypeDef *htim)
 {
     // Safe cast: TIM16 has a 16-bit auto-reload upcounter.
     uint16_t now = (uint16_t)HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
@@ -150,7 +151,7 @@ static void nec_capture_isr(TIM_HandleTypeDef *htim)
     }
 }
 
-void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+void HAL_TIM_IC_CaptureCallback(const TIM_HandleTypeDef *htim)
 {
     // IMPORTANT: the ISR logic expects a 16 bit timer.
     if (htim->Instance == TIM17 && htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
@@ -170,7 +171,6 @@ IrCommand ir_remote_get_cmd(void)
 
 void ir_remote_init(void)
 {
-    MX_TIM17_Init();
     ring_buffer_init(&cmd_queue, (uint8_t *)cmd_buffer, CMD_BUFFER_SIZE, sizeof(IrCommand));
 
     if (HAL_TIM_IC_Start_IT(&htim17, TIM_CHANNEL_1) != HAL_OK)

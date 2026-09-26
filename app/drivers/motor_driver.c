@@ -1,10 +1,11 @@
-#include "main.h"
 #include "motor_driver.h"
-#include "debug.h"
-#include "tim.h"
-#include "util.h"
 
 #include <stdbool.h>
+
+#include "debug.h"
+#include "main.h"
+#include "tim.h"
+#include "util.h"
 
 // 100% duty cycle: CCR = 100 with TIM2 ARR = 99 (100 counts per period).
 #define MOTOR_MAX_SPEED 100U
@@ -57,11 +58,8 @@ static void motor_driver_set_speed(uint8_t speed_left, uint8_t speed_right)
 {
     if (speed_left > MOTOR_MAX_SPEED || speed_right > MOTOR_MAX_SPEED)
     {
-        DEBUG_PRINTF(
-            "Motor speed out of range, clamping to %d. Left: %d, right: %d",
-            MOTOR_MAX_SPEED,
-            speed_left,
-            speed_right);
+        DEBUG_PRINTF("Motor speed out of range, clamping to %d. Left: %d, right: %d",
+                     MOTOR_MAX_SPEED, speed_left, speed_right);
     }
 
     // Clamp speed to valid value.
