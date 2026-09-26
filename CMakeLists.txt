@@ -58,6 +58,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     app/drivers/motor_driver.c
     app/drivers/ir_remote.c
     app/drivers/line_sensor.c
+    app/drivers/vl53l4cd_platform.c
     app/drivers/vl53l0x/vl53l0x_platform.c
     app/drivers/vl53l0x/vl53l0x_api.c
     app/drivers/vl53l0x/vl53l0x_api_calibration.c
@@ -85,11 +86,20 @@ add_library(segger_rtt STATIC
     external/rtt/RTT/SEGGER_RTT.c
     external/rtt/RTT/SEGGER_RTT_printf.c
 )
-
 target_include_directories(segger_rtt PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/app/config
     ${CMAKE_CURRENT_SOURCE_DIR}/external/rtt/RTT
 )
+
+add_library(vl53l4cd_uld STATIC
+    external/VL53L4CD_ULD_V2.2.3/VL53L4CD_ULD_Driver/VL53L4CD_api.c
+    external/VL53L4CD_ULD_V2.2.3/VL53L4CD_ULD_Driver/VL53L4CD_calibration.c
+)
+target_include_directories(vl53l4cd_uld PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/VL53L4CD_ULD_V2.2.3/VL53L4CD_ULD_Driver
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/VL53L4CD_ULD_V2.2.3/Platform
+)
+
 
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
@@ -105,5 +115,6 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 
     # Add user defined libraries
     segger_rtt
+    vl53l4cd_uld
 )
 
