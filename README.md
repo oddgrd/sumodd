@@ -120,6 +120,18 @@ To reset the device:
 mise run reset
 ```
 
+To format the C application code with `clang-format`:
+
+```sh
+mise run reset
+```
+
+To lint the C application code with `cppcheck`:
+
+```sh
+mise run lint
+```
+
 ### Debugging
 
 To debug the firmware, first build it with the debug preset, then install the probe-rs vscode

@@ -36,7 +36,7 @@ jobs:
         run: mise run test
 
   lint:
-    name: Cppcheck
+    name: cppcheck
     runs-on: ubuntu-latest
 
     env:
@@ -58,3 +58,22 @@ jobs:
 
       - name: Run cppcheck
         run: mise run lint
+    
+  format:
+    name: clang-format
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install clang-format
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes clang-format
+
+      - name: Set up mise
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c
+
+      - name: Check formatting
+        run: mise run format:check

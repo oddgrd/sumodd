@@ -1,5 +1,5 @@
-#include "unity.h"
 #include "ring_buffer.h"
+#include "unity.h"
 
 #define TEST_BUFFER_CAPACITY 8
 
@@ -33,7 +33,8 @@ void test_push_then_pop_then_empty(void)
 
 void test_push_beyond_full_drops_oldest_value(void)
 {
-    // Note that the capacity is one smaller, since we reserve one slot to determine if the buffer is full.
+    // Note that the capacity is one smaller, since we reserve one slot to determine if the buffer
+    // is full.
     for (int i = 0; i < TEST_BUFFER_CAPACITY; i++)
     {
         ring_buffer_push(&rb, &i);

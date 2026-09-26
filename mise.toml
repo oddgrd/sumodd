@@ -117,3 +117,9 @@ description = "Lint all Python files"
 run = '''
 uvx ruff check
 '''
+
+[tasks.format]
+run = "./scripts/clang-format.sh -i"
+
+[tasks."format:check"]
+run = "./scripts/clang-format.sh --dry-run --Werror"
