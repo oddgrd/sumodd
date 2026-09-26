@@ -2,23 +2,22 @@
 
 #include <stdbool.h>
 
-#include "drivers/vl53l0x/vl53l0x_api.h"
-#include "drivers/vl53l0x/vl53l0x_platform.h"
+#include "VL53L4CD_api.h"
 #include "main.h"
 
 extern I2C_HandleTypeDef hi2c1;
 
 typedef enum
 {
-    RANGING_LEFT = 0,
+    // RANGING_LEFT = 0,
     RANGING_MIDDLE,
-    RANGING_RIGHT,
+    // RANGING_RIGHT,
     RANGING_COUNT
 } RangingSensor;
 
 typedef struct
 {
-    VL53L0X_Dev_t dev;
+    uint16_t dev;
     GPIO_TypeDef *xshut_port;
     uint16_t xshut_pin;
     int16_t range_mm;
@@ -51,6 +50,6 @@ typedef struct
 // TODO: document this function.
 // TODO: pass pointer to statemachine ranging state? Or just keep bearing in statemachine, leave
 // the details in here, behind api?
-VL53L0X_Error ranging_init(void);
+VL53L4CD_Error ranging_init(void);
 
 Enemy ranging_get_enemy(void);

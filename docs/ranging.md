@@ -2,6 +2,7 @@
 
 ## Hardware
 
+-- TODO: update to vl53l4cd
 - [VL53L0X][vl53l0x] Time-of-Flight ranging sensor x3 on Adafruit breakout boards:
 https://www.adafruit.com/product/3317.
 
