@@ -74,9 +74,9 @@ probe-rs attach --chip STM32F303K8TX build/{{usage.preset}}/sumo.elf
 [tasks.test]
 description = "Run the unity unit tests"
 run = '''
-cmake -S tests -B build/tests
-cmake --build build/tests
-ctest --test-dir build/tests --output-on-failure
+cmake -S tests/unit -B build/tests/unit
+cmake --build build/tests/unit
+ctest --test-dir build/tests/unit --output-on-failure
 '''
 
 [tasks.plantuml-setup]

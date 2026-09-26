@@ -33,8 +33,3 @@ void ir_remote_init(void);
  * @brief Fetch an IR command from the IR remote queue, if any have been received.
  */
 IrCommand ir_remote_get_cmd(void);
-
-/**
- * @brief Interrupt callback for input capture.
- */
-void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim);

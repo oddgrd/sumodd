@@ -27,7 +27,7 @@
             "name": "test-drive",
             "inherits": "default",
             "cacheVariables": {
-                "APP_SOURCE": "tests/integration/test-drive.c",
+                "APP_SOURCE": "tests/hil/test_motor_driver.c",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         }

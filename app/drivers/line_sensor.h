@@ -18,11 +18,6 @@
  */
 void line_sensor_init(void);
 
-/**
- * @brief Interrupt callback for ADC conversion completed.
- */
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc);
-
 typedef enum
 {
     LINE_NONE,

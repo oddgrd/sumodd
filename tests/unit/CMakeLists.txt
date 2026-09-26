@@ -8,13 +8,13 @@ enable_testing()
 
 add_executable(ring_buffer_tests
     test_ring_buffer.c
-    unity/unity.c
-    ../app/ring_buffer.c
+    ../../external/unity/unity.c
+    ../../app/ring_buffer.c
 )
 
 target_include_directories(ring_buffer_tests PRIVATE
-    unity
-    ../app
+    ../../external/unity
+    ../../app
 )
 
 # Strong warnings

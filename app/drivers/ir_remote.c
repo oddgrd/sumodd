@@ -151,7 +151,8 @@ static void nec_capture_isr(const TIM_HandleTypeDef *htim)
     }
 }
 
-void HAL_TIM_IC_CaptureCallback(const TIM_HandleTypeDef *htim)
+// cppcheck-suppress constParameterPointer
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
     // IMPORTANT: the ISR logic expects a 16 bit timer.
     if (htim->Instance == TIM17 && htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)

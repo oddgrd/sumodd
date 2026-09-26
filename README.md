@@ -4,9 +4,9 @@ Sumodd is a mini-sumo robot developed from scratch, including firmware in C, 3D 
 design. See competition rules and robot requirements for mini-sumo robots
 [here](https://robotex.international/wp-content/uploads/2025/11/Mini-sumo-rules-2025-ENG.pdf).
 
-The idea for this project, the design of the firmware statemachine, as well as a lot of the
-hardware choices were heavily inspired by [`artfulbytes`](https://github.com/artfulbytes)
-excellent [youtube series](https://www.youtube.com/watch?v=g9KbXJydf8I) where he made a sumo robot
+The idea for this project, the design of the firmware statemachine and some of the hardware
+choices were inspired by [`artfulbytes`](https://github.com/artfulbytes) excellent
+[youtube series](https://www.youtube.com/watch?v=g9KbXJydf8I) where he made a sumo robot
 from scratch. See his project code [here](https://github.com/artfulbytes/nsumo_video).
 
 ## Hardware overview
@@ -18,26 +18,26 @@ documentation of the parts used and their layout on the board.
 - STM32F303K8T6 MCU with 72MHz CPU (64MHz with internal clock), 64 KB flash and 12 KB SRAM.
     - Data sheet: https://www.st.com/resource/en/datasheet/stm32f303c6.pdf
 - Sensors:
-    - VL53LOX time-of-flight sensors for detecting enemies.
+    - VL53L4CD time-of-flight sensors for detecting enemies, on custom PCBs.
     - QRE1113 line sensors for detecting the arena edge.
     - TSOP38238 infrared receiver for activating the robot remotely.
-- TB6612FNG motor driver to control the motors.
+- DRV8212 motor drivers to control the motors.
 - MPM3610 buck regulator for regulating the voltage to the MCU, ensuring it sees a steady 3.3v,
 regardless of battery voltage, which fluctuates with charge.
-- 6v, 500RPM geared brushed DC motors.
-    - https://www.jsumo.com/mp12-micro-gear-motor-6v-500rpm
-- 33mm diameter, aluminium wheels with high-friction rubber.
-    - https://www.jsumo.com/slt20-aluminum-silicone-wheel-set-33mmx20mm-pair
+- 6v, 750RPM geared brushed DC motors.
+    - https://www.jsumo.com/core-dc-motor-6v-750rpm
+- 26mm diameter, steel wheels with high-friction rubber.
+    - https://www.jsumo.com/js2622-steel-silicone-wheel-pair-26mm-diameter
 
-![Schematic](docs/media/schematic.png)
+![Schematic](docs/media/sumodd-schematic-v03.png)
 
 ## Firmware overview
 
 - Our application code and our driver code lives in `app` and `app/drivers`.
 - The [STM32CubeMX generated](#hardware-initialization) source and header files live in `Src` and
-`Inc`, with some hardware initialization code moved to `app/drivers`.
-- External libraries live in `external`, at the time of writing it just holds a Segger RTT library
-git submodule, used for logging in debug builds.
+`Inc`.
+- External libraries live in `external`, at the time of writing it holds a Segger RTT library
+git submodule, used for logging in debug builds, and the Unity unit testing framework.
 - Integration and unit tests live in `tests`.
 
 ### State machine
@@ -168,8 +168,8 @@ st-flash --reset write  build/debug/sumo.bin 0x08000000
 
 To run the unity unit tests, run: `mise run test`
 
-To run the various integration tests, connect the device, then repeat the build and flash steps
-above, but use the desired integration test cmake preset.
+To run the HIL tests, connect the device, then repeat the build and flash steps above, but use the
+desired integration test cmake preset.
 
 The currently existing integration test presets are:
 
