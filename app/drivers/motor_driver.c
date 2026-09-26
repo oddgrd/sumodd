@@ -2,56 +2,7 @@
 
 #include "motor_driver.h"
 #include "debug.h"
-
-// Handle to the TIM2 peripheral used for motor controller PWM.
-TIM_HandleTypeDef htim2;
-
-/**
- * @brief TIM2 Initialization Function
- */
-static void MX_TIM2_Init(void)
-{
-    TIM_MasterConfigTypeDef sMasterConfig = {0};
-    TIM_OC_InitTypeDef sConfigOC = {0};
-
-    /**
-     * With the system clock running at 64MHz, we configure the period and prescaler to arrive at
-     * 20KHz frequency:
-     * f_PWM = f_TIM / ((PSC + 1)(ARR + 1))
-     * f_PWM = 64MHz / (32 * 100)
-     * f_PWM = 20KHz
-     */
-    htim2.Instance = TIM2;
-    htim2.Init.Prescaler = 31;
-    htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim2.Init.Period = 100 - 1; // 0..=99
-    htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-    if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
-    {
-        Error_Handler();
-    }
-    sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-    if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
-    {
-        Error_Handler();
-    }
-    sConfigOC.OCMode = TIM_OCMODE_PWM1;
-    sConfigOC.Pulse = 0; // Initial CCR value.
-    sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-    sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-    if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
-    {
-        Error_Handler();
-    }
-    if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
-    {
-        Error_Handler();
-    }
-
-    HAL_TIM_MspPostInit(&htim2);
-}
+#include <tim.h>
 
 /**
  * @brief Direction of the motors.

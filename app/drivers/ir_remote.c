@@ -7,12 +7,11 @@
 #include "state.h"
 #include "app_config.h"
 #include "debug.h"
+#include <tim.h>
 
 #define CMD_BUFFER_SIZE (8U)
 #define FINAL_PULSE 34U
 #define B1_PULSE_WIDTH_TICKS 1800U
-
-TIM_HandleTypeDef htim17;
 
 static uint32_t raw_message = 0;
 
@@ -21,42 +20,6 @@ static uint16_t last = 0;
 
 static IrCommand cmd_buffer[CMD_BUFFER_SIZE] = {0};
 static RingBuffer cmd_queue = {0};
-
-/**
- * @brief TIM17 Initialization Function
- * @param None
- * @retval None
- */
-static void MX_TIM17_Init(void)
-{
-    TIM_IC_InitTypeDef sConfigIC = {0};
-
-    htim17.Instance = TIM17;
-    htim17.Init.Prescaler = 64 - 1;
-    htim17.Init.CounterMode = TIM_COUNTERMODE_UP;
-    // TIM17 is a 16 bit counter, but note that if we change timers, the ISR logic expects a 16 bit
-    // period, so the period cannot be larger unless the logic is updated.
-    htim17.Init.Period = 65536 - 1;
-    htim17.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    htim17.Init.RepetitionCounter = 0;
-    htim17.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-    if (HAL_TIM_Base_Init(&htim17) != HAL_OK)
-    {
-        Error_Handler();
-    }
-    if (HAL_TIM_IC_Init(&htim17) != HAL_OK)
-    {
-        Error_Handler();
-    }
-    sConfigIC.ICPolarity = TIM_INPUTCHANNELPOLARITY_FALLING;
-    sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI;
-    sConfigIC.ICPrescaler = TIM_ICPSC_DIV1;
-    sConfigIC.ICFilter = 0;
-    if (HAL_TIM_IC_ConfigChannel(&htim17, &sConfigIC, TIM_CHANNEL_1) != HAL_OK)
-    {
-        Error_Handler();
-    }
-}
 
 /**
  * Reverse the bit order of a byte, making the LSB the MSB, the second LSB the second MSB, and so

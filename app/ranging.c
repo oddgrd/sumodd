@@ -2,6 +2,7 @@
 #include "drivers/vl53l0x/vl53l0x_api.h"
 #include "ranging.h"
 #include "debug.h"
+#include "i2c.h"
 
 // Default I2C address of the device, same for all sensors after reset.
 #define VL53L0X_DEFAULT_ADDRESS 0x52
@@ -39,8 +40,6 @@
 // measurements.
 #define SIGMA_FINAL_RANGE_MM_Q16_16 ((FixPoint1616_t)(18UL * 65536UL))
 
-I2C_HandleTypeDef hi2c1;
-
 typedef struct
 {
     GPIO_TypeDef *xshut_port;
@@ -56,43 +55,6 @@ static const RangingConfig ranging_config[RANGING_COUNT] = {
 };
 
 RangingState ranging_state = {0};
-
-/**
- * @brief I2C1 Initialization Function
- * @param None
- * @retval None
- */
-static void MX_I2C1_Init(void)
-{
-    hi2c1.Instance = I2C1;
-    // Fast mode, 400 KHz, to speed up the I2C transmissions required to read the ranging data.
-    hi2c1.Init.Timing = 0x0010020A;
-    hi2c1.Init.OwnAddress1 = 0;
-    hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-    hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-    hi2c1.Init.OwnAddress2 = 0;
-    hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
-    hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-    hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-    if (HAL_I2C_Init(&hi2c1) != HAL_OK)
-    {
-        Error_Handler();
-    }
-
-    /** Configure Analogue filter
-     */
-    if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
-    {
-        Error_Handler();
-    }
-
-    /** Configure Digital filter
-     */
-    if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
-    {
-        Error_Handler();
-    }
-}
 
 /**
  * @brief Read the ranging sensors and update the ranging state.
