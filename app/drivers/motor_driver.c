@@ -1,8 +1,17 @@
 #include "main.h"
-
 #include "motor_driver.h"
 #include "debug.h"
-#include <tim.h>
+#include "tim.h"
+#include "util.h"
+
+#include <stdbool.h>
+
+// 100% duty cycle: CCR = 100 with TIM2 ARR = 99 (100 counts per period).
+#define MOTOR_MAX_SPEED 100U
+
+// Record previous speeds to know whether we need to wake the motor driver.
+static uint8_t prev_speed_left = 0;
+static uint8_t prev_speed_right = 0;
 
 /**
  * @brief Direction of the motors.
@@ -46,37 +55,45 @@ static void motor_driver_set_direction(MotorDirection direction)
 
 static void motor_driver_set_speed(uint8_t speed_left, uint8_t speed_right)
 {
-    if (speed_left > 99 || speed_right > 99)
+    if (speed_left > MOTOR_MAX_SPEED || speed_right > MOTOR_MAX_SPEED)
     {
         DEBUG_PRINTF(
-            "Speed should be between 0 and 99, received speed left: %d, speed right: %d", speed_left, speed_right);
-        Error_Handler();
+            "Motor speed out of range, clamping to %d. Left: %d, right: %d",
+            MOTOR_MAX_SPEED,
+            speed_left,
+            speed_right);
     }
 
     // Clamp speed to valid value.
-    speed_left = speed_left > 99 ? 99 : speed_left;
-    speed_right = speed_right > 99 ? 99 : speed_right;
+    speed_left = speed_left > MOTOR_MAX_SPEED ? MOTOR_MAX_SPEED : speed_left;
+    speed_right = speed_right > MOTOR_MAX_SPEED ? MOTOR_MAX_SPEED : speed_right;
 
-    // TODO: solve this properly, the driver needs to be HIGH for 100us after having slept,
-    // which it does automatically when inactive for 0.9-2.6ms. Just set the speed of each driver
-    // in a uint8_t, and check it when setting motor speed.
-    if (speed_left > 0)
+    const bool should_wake_left = prev_speed_left == 0 && speed_left > 0;
+    const bool should_wake_right = prev_speed_right == 0 && speed_right > 0;
+
+    if (should_wake_left)
     {
-        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, 99);
+        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, MOTOR_MAX_SPEED);
     }
-    if (speed_right > 0)
+    if (should_wake_right)
     {
-        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, 99);
+        __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, MOTOR_MAX_SPEED);
     }
 
-    if (speed_left > 0 || speed_right > 0)
+    // The DRV8212 motor driver goes into sleep mode after the EN pin (PWM input) is low for
+    // between 0.9 and 2.6ms. To wake it, the EN pin must be held high for at least 100us.
+    // To achieve that, we set our duty cycle to 100%, then busy wait for the needed duration.
+    // See DRV8212 datasheet section 7.5 for details.
+    if (should_wake_left || should_wake_right)
     {
-        // TODO: use timer peripheral to create microsecond delay function.
-        HAL_Delay(1);
+        delay_us(110);
     }
 
     __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, speed_left);
     __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_4, speed_right);
+
+    prev_speed_left = speed_left;
+    prev_speed_right = speed_right;
 }
 
 void motor_drive(uint8_t speed, DriveDirection direction)

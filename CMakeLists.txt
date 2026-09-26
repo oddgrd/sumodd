@@ -71,6 +71,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     app/state_attack.c
     app/ring_buffer.c
     app/ranging.c
+    app/util.c
     ${APP_SOURCE}
 )
 

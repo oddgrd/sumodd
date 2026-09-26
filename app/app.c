@@ -6,9 +6,17 @@
 #include "ranging.h"
 #include "drivers/vl53l0x/vl53l0x_api.h"
 #include "debug.h"
+#include <tim.h>
 
 void app_init(void)
 {
+    // Used by microsecond sleep utility, and for IR remote input capture.
+    MX_TIM17_Init();
+    if (HAL_TIM_Base_Start(&htim17) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
     ir_remote_init();
     line_sensor_init();
     int ret = ranging_init();
