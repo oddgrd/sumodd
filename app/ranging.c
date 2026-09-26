@@ -2,7 +2,6 @@
 
 #include "VL53L4CD_api.h"
 #include "debug.h"
-#include "drivers/vl53l0x/vl53l0x_api.h"
 #include "i2c.h"
 #include "main.h"
 
@@ -195,7 +194,7 @@ VL53L4CD_Error ranging_init(void)
     return ret;
 }
 
-// VL53L0X data ready interrupt ISR. Set flag to read data over I2C in main loop.
+// VL53L4CD data ready interrupt ISR. Set flag to read data over I2C in main loop.
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
     // if (GPIO_Pin == GPIO_PIN_4)

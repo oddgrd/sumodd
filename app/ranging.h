@@ -2,8 +2,7 @@
 
 #include <stdbool.h>
 
-#include "drivers/vl53l0x/vl53l0x_api.h"
-#include "drivers/vl53l0x/vl53l0x_platform.h"
+#include "VL53L4CD_api.h"
 #include "main.h"
 
 extern I2C_HandleTypeDef hi2c1;
