@@ -35,9 +35,9 @@ void MX_I2C1_Init(void)
   /* USER CODE END I2C1_Init 0 */
 
   /* USER CODE BEGIN I2C1_Init 1 */
-  // The I2C bus is used to communicate with our three VL53L* ranging sensors, configured in fast
-  // mode, 400 KHz, to speed up the I2C transmissions required to read the ranging data and reset
-  // the DRDY pin.
+  // The I2C bus is used to communicate with our three VL53L4CD ranging sensors, configured for I2C
+  // fast mode plus, 1MHz, to speed up the I2C transmissions required to read the ranging data and
+  // reset the DRDY pin.
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
   hi2c1.Init.Timing = 0x00100001;

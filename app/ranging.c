@@ -31,9 +31,9 @@ typedef struct
 
 // XSHUT pin and device address configurations for range sensors.
 static const RangingConfig ranging_config[RANGING_COUNT] = {
-    // [RANGING_LEFT] = {GPIOA, GPIO_PIN_11, RANGING_ADDR_LEFT},
+    [RANGING_LEFT] = {GPIOA, GPIO_PIN_11, RANGING_ADDR_LEFT},
     [RANGING_MIDDLE] = {GPIOA, GPIO_PIN_8, RANGING_ADDR_MIDDLE},
-    // [RANGING_RIGHT] = {GPIOB, GPIO_PIN_1, RANGING_ADDR_RIGHT},
+    [RANGING_RIGHT] = {GPIOB, GPIO_PIN_1, RANGING_ADDR_RIGHT},
 };
 
 RangingState ranging_state = {0};
@@ -92,9 +92,9 @@ Enemy ranging_get_enemy(void)
     ranging_update();
     Enemy enemy = {.bearing = BEARING_NONE};
 
-    // bool enemy_left = valid_range(ranging_state.sensor[RANGING_LEFT].range_mm);
+    bool enemy_left = valid_range(ranging_state.sensor[RANGING_LEFT].range_mm);
     bool enemy_front = valid_range(ranging_state.sensor[RANGING_MIDDLE].range_mm);
-    // bool enemy_right = valid_range(ranging_state.sensor[RANGING_RIGHT].range_mm);
+    bool enemy_right = valid_range(ranging_state.sensor[RANGING_RIGHT].range_mm);
 
     if (enemy_front)
     {
@@ -103,19 +103,19 @@ Enemy ranging_get_enemy(void)
         return enemy;
     }
 
-    // if (enemy_left)
-    // {
-    //     enemy.bearing = BEARING_LEFT;
-    //     enemy.distance_mm = ranging_state.sensor[RANGING_LEFT].range_mm;
-    //     return enemy;
-    // }
+    if (enemy_left)
+    {
+        enemy.bearing = BEARING_LEFT;
+        enemy.distance_mm = ranging_state.sensor[RANGING_LEFT].range_mm;
+        return enemy;
+    }
 
-    // if (enemy_right)
-    // {
-    //     enemy.bearing = BEARING_RIGHT;
-    //     enemy.distance_mm = ranging_state.sensor[RANGING_RIGHT].range_mm;
-    //     return enemy;
-    // }
+    if (enemy_right)
+    {
+        enemy.bearing = BEARING_RIGHT;
+        enemy.distance_mm = ranging_state.sensor[RANGING_RIGHT].range_mm;
+        return enemy;
+    }
 
     return enemy;
 }
@@ -197,16 +197,16 @@ VL53L4CD_Error ranging_init(void)
 // VL53L4CD data ready interrupt ISR. Set flag to read data over I2C in main loop.
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-    // if (GPIO_Pin == GPIO_PIN_4)
-    // {
-    //     ranging_state.sensor[RANGING_LEFT].data_ready = true;
-    // }
+    if (GPIO_Pin == GPIO_PIN_4)
+    {
+        ranging_state.sensor[RANGING_LEFT].data_ready = true;
+    }
     if (GPIO_Pin == GPIO_PIN_0)
     {
         ranging_state.sensor[RANGING_MIDDLE].data_ready = true;
     }
-    // if (GPIO_Pin == GPIO_PIN_12)
-    // {
-    //     ranging_state.sensor[RANGING_RIGHT].data_ready = true;
-    // }
+    if (GPIO_Pin == GPIO_PIN_12)
+    {
+        ranging_state.sensor[RANGING_RIGHT].data_ready = true;
+    }
 }

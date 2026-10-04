@@ -94,7 +94,6 @@ target_include_directories(vl53l4cd_uld PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/external/VL53L4CD_ULD_V2.2.3/Platform
 )
 
-
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined symbols

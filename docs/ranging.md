@@ -14,6 +14,7 @@ by up to 5%, compared to the ideal timing budget of 33ms (see [§6.3.2 in the da
 
 ## I2C Interface
 
+-- TODO: now i2c fast mode plus, 1MHz
 The ranging data is read over I2C. The VL53L0X supports ut to 400kHz I2C clock speeds. Since we
 have three sensors, and they all share the same default I2C address, we need to use the provided
 XSHUT pin to turn the other sensors off, as we write to each sensor one by one on the default
