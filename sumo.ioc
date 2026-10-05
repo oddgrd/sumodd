@@ -1,8 +1,8 @@
 #MicroXplorer Configuration settings - do not modify
 ADC2.Channel-6\#ChannelRegularConversion=ADC_CHANNEL_1
-ADC2.Channel-7\#ChannelRegularConversion=ADC_CHANNEL_1
-ADC2.Channel-8\#ChannelRegularConversion=ADC_CHANNEL_1
-ADC2.Channel-9\#ChannelRegularConversion=ADC_CHANNEL_1
+ADC2.Channel-7\#ChannelRegularConversion=ADC_CHANNEL_2
+ADC2.Channel-8\#ChannelRegularConversion=ADC_CHANNEL_3
+ADC2.Channel-9\#ChannelRegularConversion=ADC_CHANNEL_4
 ADC2.ClockPrescaler=ADC_CLOCK_ASYNC_DIV1
 ADC2.DMAContinuousRequests=ENABLE
 ADC2.EOCSelection=ADC_EOC_SEQ_CONV
