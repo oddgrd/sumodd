@@ -39,7 +39,7 @@ regardless of battery voltage, which fluctuates with charge.
 - External libraries live in `external`, at the time of writing it holds a Segger RTT library
 git submodule, used for logging in debug builds, ST's VL53L4CD driver and the Unity unit testing
 framework.
-- Integration and unit tests live in `tests`.
+- Integration/HIL and unit tests live in `tests`.
 
 ### State machine
 
@@ -58,19 +58,10 @@ sensors and ranging sensors below.
 
 We use the STM32 HAL to configure and interact with the hardware, and we use the
 [STM32CubeMX](https://www.st.com/en/development-tools/stm32cubemx.html) software to generate the
-hardware initialization code, as well as the initial CMake configuration. STM32CubeMX would put all
-generated initialization code in the `Src/main.c` file, but we've since moved some of the
-initialization code out, so it lives next to the relevant firmware. For example, the timer
-peripheral initialization code that is used to enable input capture for the IR remote lives in
-`app/drivers/ir_remote.c`.
+hardware initialization code for GPIO, I2C, ADC etc., as well as the initial CMake configuration.
 
-STM32CubeMX is a great tool and it has been very useful, so we may stop fighting it and move
-everything back to the place it was originally generated in the future.
-
-> The STM32CubeMX manifest has been kept up to date with manual changes to the generated code,
-> so if you need to use STM32CubeMX to make changes to initialization code, or you want to easily
-> visualize the hardware configuration, you can initialize a STM32CubeMX project from the
-> `sumo.ioc` file in the root of this repo.
+If you'd like to view or mutate the current configuration in CubeMX, simply initialize a project
+from the `sumo.ioc` file in the root of this repo.
 
 ## Documentation
 
