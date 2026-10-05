@@ -1,12 +1,12 @@
 #include "ranging.h"
 
+#include "VL53L4CD_api.h"
 #include "debug.h"
-#include "drivers/vl53l0x/vl53l0x_api.h"
 #include "i2c.h"
 #include "main.h"
 
 // Default I2C address of the device, same for all sensors after reset.
-#define VL53L0X_DEFAULT_ADDRESS 0x52
+#define VL53L4CD_DEFAULT_ADDRESS 0x52
 // I2C address we set for each device during the initialization of the device.
 #define RANGING_ADDR_LEFT 0x30
 #define RANGING_ADDR_MIDDLE 0x32
@@ -17,29 +17,10 @@
 // depending on the amount of ambient light.
 #define RANGING_MAX_DISTANCE_MM 400U
 #define RANGING_MIN_DISTANCE_MM 10U
-// Around 20ms is the lowest timing budget supported by the VL53L0X, with +-5% accuracy, whereas
-// 30ms is the default. Since we are only measuring within a 77cm dohyo, we go for the fastest.
-#define RANGING_TIMING_BUDGET_US 20000U
-
-// NOTE: for more information on the below limits, see the answer from ST here:
-// https://community.st.com/imaging-sensors-49/vl53l0x-api-usage-of-the-6-limit-checks-ambient-spad-damper-dmax-cal-etc-37534
-
-// NOTE: q16_16 is Q notation, it means the number has 16 bits for the integer part, and 16 bits
-// for the fractional part, this way the vl53l0x API can store a fractional number in a u32 (here
-// with the FixPoint1616_t type alias for u32), to avoid floating point operations on embedded
-// targets.
-
-// If the signal strength is lower than this, set a signal fail status (2) on the ranging data.
-// We usually set this to the default, 0.25 mega counts per second (MCPS), but it can be increased
-// to adapt to environmental conditions, e.g. an arena with a lot of ambient IR.
-
-#define SIGNAL_RATE_LIMIT_MCPS_Q16_16 ((FixPoint1616_t)(25UL * 65536UL / 100UL)) // 0.25 * 65536
-// If the standard deviation of the range data is greater than this, set a sigma fail status (1) on
-// the ranging data. If we see this status when we read the ranging data, we may choose to ignore
-// the reading.
-// We usually set this to the default, 18mm, but it can be lowered to increase precision of
-// measurements.
-#define SIGMA_FINAL_RANGE_MM_Q16_16 ((FixPoint1616_t)(18UL * 65536UL))
+// Around 10ms is the lowest timing budget supported by the VL53L4CD, with some loss of accuracy,
+// whereas 30ms is the default. Since we are only measuring within a 77cm dohyo, we go for the
+// fastest.
+#define RANGING_TIMING_BUDGET_MS 10U
 
 typedef struct
 {
@@ -64,39 +45,40 @@ RangingState ranging_state = {0};
  */
 static void ranging_update(void)
 {
-    VL53L0X_RangingMeasurementData_t RangingData = {0};
 
     for (int i = 0; i < RANGING_COUNT; i++)
     {
-        if (ranging_state.sensor[i].data_ready)
+        if (!ranging_state.sensor[i].data_ready)
         {
-            int ret = VL53L0X_GetRangingMeasurementData(&ranging_state.sensor[i].dev, &RangingData);
-            if (ret != VL53L0X_ERROR_NONE)
-            {
-                DEBUG_PRINTF("Failed to get ranging data for sensor: %d, error: %d\n", i, ret);
-            };
-
-            int16_t distance_mm = RangingData.RangeMilliMeter;
-
-            ranging_state.sensor[i].range_mm = distance_mm;
-            ranging_state.sensor[i].range_status = RangingData.RangeStatus;
-
-            // DEBUG_PRINTF(
-            //     "Distance: %d mm, status: %d, max: %d, device: %x\n",
-            //     distance_mm,
-            //     RangingData.RangeStatus,
-            //     RangingData.RangeDMaxMilliMeter,
-            //     ranging_state.sensor[i].dev.I2cDevAddr);
-
-            ranging_state.sensor[i].data_ready = false;
-
-            // Clear the interrupt so the next measurement can complete
-            ret = VL53L0X_ClearInterruptMask(&ranging_state.sensor[i].dev, 0);
-            if (ret != VL53L0X_ERROR_NONE)
-            {
-                DEBUG_PRINTF("Failed to clear interrupt mask for sensor: %d, error: %d\n", i, ret);
-            };
+            continue;
         }
+
+        VL53L4CD_ResultsData_t ranging_data = {0};
+
+        int ret = VL53L4CD_GetResult(ranging_state.sensor[i].dev, &ranging_data);
+        if (ret != VL53L4CD_ERROR_NONE)
+        {
+            // TODO: handle this failure more explicitly, it just works now because we consider
+            // 0mm (from unmodified zeroed ranging_data) as invalid range.
+            DEBUG_PRINTF("Failed to get ranging data for sensor: %d, error: %d\n", i, ret);
+        };
+
+        ranging_state.sensor[i].range_status = ranging_data.range_status;
+
+        // Skip updating ranging distance if measurement is insecure.
+        if (ranging_data.range_status == 0)
+        {
+            ranging_state.sensor[i].range_mm = ranging_data.distance_mm;
+        }
+
+        ranging_state.sensor[i].data_ready = false;
+
+        // Clear the interrupt so the next measurement can complete
+        ret = VL53L4CD_ClearInterrupt(ranging_state.sensor[i].dev);
+        if (ret != VL53L4CD_ERROR_NONE)
+        {
+            DEBUG_PRINTF("Failed to clear interrupt mask for sensor: %d, error: %d\n", i, ret);
+        };
     }
 
     // DEBUG_PRINTF("l:%d m:%d r:%d\n", ranging_state.sensor[RANGING_LEFT].range_mm,
@@ -113,14 +95,15 @@ Enemy ranging_get_enemy(void)
     ranging_update();
     Enemy enemy = {.bearing = BEARING_NONE};
 
-    // TODO: also check ranging status? We will  get not-null for bad readings, e.g. max distance
-    // due to looking into space, e.g:
-    // 13:12:16.418: Distance: 8190 mm, status: 4, max: 1167
-    // 13:12:16.418: Distance: 8191 mm, status: 2, max: 1169
-
-    bool enemy_left = valid_range(ranging_state.sensor[RANGING_LEFT].range_mm);
-    bool enemy_front = valid_range(ranging_state.sensor[RANGING_MIDDLE].range_mm);
-    bool enemy_right = valid_range(ranging_state.sensor[RANGING_RIGHT].range_mm);
+    // TODO: Also consider rejecting old values, as we now rely on the sensor reading being out of
+    // range if there is no enemy to update the state, but if the sensor stops working, we will be
+    // stuck on the last value.
+    bool enemy_left = valid_range(ranging_state.sensor[RANGING_LEFT].range_mm) &&
+                      ranging_state.sensor[RANGING_LEFT].range_status == 0;
+    bool enemy_front = valid_range(ranging_state.sensor[RANGING_MIDDLE].range_mm) &&
+                       ranging_state.sensor[RANGING_MIDDLE].range_status == 0;
+    bool enemy_right = valid_range(ranging_state.sensor[RANGING_RIGHT].range_mm) &&
+                       ranging_state.sensor[RANGING_RIGHT].range_status == 0;
 
     if (enemy_front)
     {
@@ -146,7 +129,7 @@ Enemy ranging_get_enemy(void)
     return enemy;
 }
 
-VL53L0X_Error ranging_init(void)
+VL53L4CD_Error ranging_init(void)
 {
     MX_I2C1_Init();
 
@@ -161,7 +144,7 @@ VL53L0X_Error ranging_init(void)
                           GPIO_PIN_RESET);
     }
     HAL_Delay(10);
-    int ret = VL53L0X_ERROR_NONE;
+    int ret = VL53L4CD_ERROR_NONE;
 
     for (int i = 0; i < RANGING_COUNT; i++)
     {
@@ -174,129 +157,45 @@ VL53L0X_Error ranging_init(void)
 
         // Use the default address for the change address I2C call, since it will be the address of
         // all the devices after the reset.
-        ranging_state.sensor[i].dev.I2cDevAddr = VL53L0X_DEFAULT_ADDRESS;
+        ranging_state.sensor[i].dev = VL53L4CD_DEFAULT_ADDRESS;
 
-        ret = VL53L0X_SetDeviceAddress(&ranging_state.sensor[i].dev,
-                                       ranging_config[i].device_address);
-        if (ret != VL53L0X_ERROR_NONE)
+        ret = VL53L4CD_SetI2CAddress(ranging_state.sensor[i].dev, ranging_config[i].device_address);
+        if (ret != VL53L4CD_ERROR_NONE)
         {
-            DEBUG_PRINTF("Failed to set device address for device, error: %d\n", ret);
+            DEBUG_PRINTF("Failed to set device address for device %d, error: %d\n",
+                         ranging_state.sensor[i].dev, ret);
             return ret;
         };
 
         // Change the device instance address to the new address, we will use that from here on out.
-        ranging_state.sensor[i].dev.I2cDevAddr = ranging_config[i].device_address;
+        ranging_state.sensor[i].dev = ranging_config[i].device_address;
 
-        ret = VL53L0X_DataInit(&ranging_state.sensor[i].dev);
-        if (ret != VL53L0X_ERROR_NONE)
+        ret = VL53L4CD_SensorInit(ranging_state.sensor[i].dev);
+        if (ret != VL53L4CD_ERROR_NONE)
         {
-            DEBUG_PRINTF("Failed to initialize data for device, error: %d\n", ret);
+            DEBUG_PRINTF("Failed to initialize data for device %d, error: %d\n",
+                         ranging_state.sensor[i].dev, ret);
             return ret;
         };
 
-        ret = VL53L0X_StaticInit(&ranging_state.sensor[i].dev);
-        if (ret != VL53L0X_ERROR_NONE)
+        // Configure for fast ranging with the minimum timing budget, and continuous ranging,
+        // 0 ms between measurements.
+        ret = VL53L4CD_SetRangeTiming(ranging_state.sensor[i].dev, RANGING_TIMING_BUDGET_MS, 0);
+        if (ret != VL53L4CD_ERROR_NONE)
         {
-            DEBUG_PRINTF("Failed to statically initialize device, error: %d\n", ret);
-            return ret;
-        };
-
-        uint8_t VhvSettings = 0;
-        uint8_t PhaseCal = 0;
-        ret = VL53L0X_PerformRefCalibration(&ranging_state.sensor[i].dev, &VhvSettings, &PhaseCal);
-        if (ret != VL53L0X_ERROR_NONE)
-        {
-            DEBUG_PRINTF("Failed to perform ref calibration for device, error: %d\n", ret);
-            return ret;
-        };
-
-        // Load SPAD (Single Photon Avalanche Diode) calibration data, needs to be done after each
-        // reset. This is an array of diodes that are used for detecting the reflected IR light
-        // emitted from the VCSEL (vertical-cavity surface-emitting laser).
-        uint32_t refSpadCount = 0;
-        uint8_t isApertureSpads = 0;
-        ret = VL53L0X_PerformRefSpadManagement(&ranging_state.sensor[i].dev, &refSpadCount,
-                                               &isApertureSpads);
-        if (ret != VL53L0X_ERROR_NONE)
-        {
-            DEBUG_PRINTF("Failed to perform spad management for device, error: %d\n", ret);
-            return ret;
-        };
-
-        DEBUG_PRINTF("Initialized sensor with spad count: %d, aperture spads enabled: %d\n",
-                     refSpadCount, isApertureSpads);
-
-        ret = VL53L0X_SetDeviceMode(&ranging_state.sensor[i].dev,
-                                    VL53L0X_DEVICEMODE_CONTINUOUS_RANGING);
-        if (ret != VL53L0X_ERROR_NONE)
-        {
-            DEBUG_PRINTF("Failed to set device mode for device, error: %d\n", ret);
-            return ret;
-        };
-
-        ret = VL53L0X_SetMeasurementTimingBudgetMicroSeconds(&ranging_state.sensor[i].dev,
-                                                             RANGING_TIMING_BUDGET_US);
-        if (ret != VL53L0X_ERROR_NONE)
-        {
-            DEBUG_PRINTF("Failed to set measurement timing budget for device, error: %d\n", ret);
-            return ret;
-        };
-
-        // Explicitly set the SIGNAL_RATE_FINAL_RANGE (signal strength limit), so we can easily
-        // increase it from the default in high ambient light conditions.
-        ret = VL53L0X_SetLimitCheckEnable(&ranging_state.sensor[i].dev,
-                                          VL53L0X_CHECKENABLE_SIGNAL_RATE_FINAL_RANGE, 1);
-        if (ret != VL53L0X_ERROR_NONE)
-        {
-            DEBUG_PRINTF("Failed to enable limit check for signal rate, error: %d\n", ret);
-            return ret;
-        };
-        ret = VL53L0X_SetLimitCheckValue(&ranging_state.sensor[i].dev,
-                                         VL53L0X_CHECKENABLE_SIGNAL_RATE_FINAL_RANGE,
-                                         SIGNAL_RATE_LIMIT_MCPS_Q16_16);
-        if (ret != VL53L0X_ERROR_NONE)
-        {
-            DEBUG_PRINTF("Failed to increase signal rate limit, error: %d\n", ret);
-            return ret;
-        };
-
-        // Explicitly set the SIGMA_FINAL_RANGE (standard deviation limit), so we can easily reduce
-        // it from the default in high ambient light conditions.
-        ret = VL53L0X_SetLimitCheckEnable(&ranging_state.sensor[i].dev,
-                                          VL53L0X_CHECKENABLE_SIGMA_FINAL_RANGE, 1);
-        if (ret != VL53L0X_ERROR_NONE)
-        {
-            DEBUG_PRINTF("Failed to enable limit check for sigma, error: %d\n", ret);
-            return ret;
-        };
-        ret = VL53L0X_SetLimitCheckValue(&ranging_state.sensor[i].dev,
-                                         VL53L0X_CHECKENABLE_SIGMA_FINAL_RANGE,
-                                         SIGMA_FINAL_RANGE_MM_Q16_16);
-        if (ret != VL53L0X_ERROR_NONE)
-        {
-            DEBUG_PRINTF("Failed to increase sigma limit, error: %d\n", ret);
-            return ret;
-        };
-
-        // Configure the GPIO pin on the device, AKA the DRDY interrupt pin, which will be pulled
-        // low when data is ready, and which will trigger an interrupt on the falling edge in an
-        // EXTI pin on the MCU.
-        ret = VL53L0X_SetGpioConfig(
-            &ranging_state.sensor[i].dev, 0, VL53L0X_DEVICEMODE_CONTINUOUS_RANGING,
-            VL53L0X_GPIOFUNCTIONALITY_NEW_MEASURE_READY, VL53L0X_INTERRUPTPOLARITY_LOW);
-        if (ret != VL53L0X_ERROR_NONE)
-        {
-            DEBUG_PRINTF("Failed to configure gpio pin for device, error: %d\n", ret);
+            DEBUG_PRINTF("Failed to set range timing for device %d, error: %d\n",
+                         ranging_state.sensor[i].dev, ret);
             return ret;
         };
     }
 
     for (int i = 0; i < RANGING_COUNT; i++)
     {
-        ret = VL53L0X_StartMeasurement(&ranging_state.sensor[i].dev);
-        if (ret != VL53L0X_ERROR_NONE)
+        ret = VL53L4CD_StartRanging(ranging_state.sensor[i].dev);
+        if (ret != VL53L4CD_ERROR_NONE)
         {
-            DEBUG_PRINTF("Failed to start measurements for device, error: %d\n", ret);
+            DEBUG_PRINTF("Failed to start measurements for device %d, error: %d\n",
+                         ranging_state.sensor[i].dev, ret);
             return ret;
         };
     }
@@ -304,7 +203,7 @@ VL53L0X_Error ranging_init(void)
     return ret;
 }
 
-// VL53L0X data ready interrupt ISR. Set flag to read data over I2C in main loop.
+// VL53L4CD data ready interrupt ISR. Set flag to read data over I2C in main loop.
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
     if (GPIO_Pin == GPIO_PIN_4)

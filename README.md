@@ -37,7 +37,8 @@ regardless of battery voltage, which fluctuates with charge.
 - The [STM32CubeMX generated](#hardware-initialization) source and header files live in `Src` and
 `Inc`.
 - External libraries live in `external`, at the time of writing it holds a Segger RTT library
-git submodule, used for logging in debug builds, and the Unity unit testing framework.
+git submodule, used for logging in debug builds, ST's VL53L4CD driver and the Unity unit testing
+framework.
 - Integration and unit tests live in `tests`.
 
 ### State machine
