@@ -53,20 +53,23 @@ static void ranging_update(void)
             continue;
         }
 
-        VL53L4CD_ResultsData_t RangingData = {0};
+        VL53L4CD_ResultsData_t ranging_data = {0};
 
-        int ret = VL53L4CD_GetResult(ranging_state.sensor[i].dev, &RangingData);
+        int ret = VL53L4CD_GetResult(ranging_state.sensor[i].dev, &ranging_data);
         if (ret != VL53L4CD_ERROR_NONE)
         {
+            // TODO: handle this failure more explicitly, it just works now because we consider
+            // 0mm (from unmodified zeroed ranging_data) as invalid range.
             DEBUG_PRINTF("Failed to get ranging data for sensor: %d, error: %d\n", i, ret);
         };
 
-        ranging_state.sensor[i].range_mm = RangingData.distance_mm;
-        ranging_state.sensor[i].range_status = RangingData.range_status;
+        ranging_state.sensor[i].range_status = ranging_data.range_status;
 
-        DEBUG_PRINTF("Distance: %d mm, status: %d, sigma mm: %d, device: %x\n",
-                     RangingData.distance_mm, RangingData.range_status, RangingData.sigma_mm,
-                     ranging_state.sensor[i].dev);
+        // Skip updating ranging distance if measurement is insecure.
+        if (ranging_data.range_status == 0)
+        {
+            ranging_state.sensor[i].range_mm = ranging_data.distance_mm;
+        }
 
         ranging_state.sensor[i].data_ready = false;
 
@@ -92,9 +95,15 @@ Enemy ranging_get_enemy(void)
     ranging_update();
     Enemy enemy = {.bearing = BEARING_NONE};
 
-    bool enemy_left = valid_range(ranging_state.sensor[RANGING_LEFT].range_mm);
-    bool enemy_front = valid_range(ranging_state.sensor[RANGING_MIDDLE].range_mm);
-    bool enemy_right = valid_range(ranging_state.sensor[RANGING_RIGHT].range_mm);
+    // TODO: Also consider rejecting old values, as we now rely on the sensor reading being out of
+    // range if there is no enemy to update the state, but if the sensor stops working, we will be
+    // stuck on the last value.
+    bool enemy_left = valid_range(ranging_state.sensor[RANGING_LEFT].range_mm) &&
+                      ranging_state.sensor[RANGING_LEFT].range_status == 0;
+    bool enemy_front = valid_range(ranging_state.sensor[RANGING_MIDDLE].range_mm) &&
+                       ranging_state.sensor[RANGING_MIDDLE].range_status == 0;
+    bool enemy_right = valid_range(ranging_state.sensor[RANGING_RIGHT].range_mm) &&
+                       ranging_state.sensor[RANGING_RIGHT].range_status == 0;
 
     if (enemy_front)
     {

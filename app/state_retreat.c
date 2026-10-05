@@ -5,7 +5,7 @@
 #include "main.h"
 #include "state.h"
 
-#define STATE_RETREAT_DURATION_MS (450U)
+#define STATE_RETREAT_DURATION_MS (350U)
 
 static RetreatState next_retreat_state(const struct StateRetreatCtx *ctx)
 {
