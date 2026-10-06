@@ -2,27 +2,27 @@
 
 ## Hardware
 
-- [TB6612FNG][TB6612FNG] motor driver.
+- [DRV8212][DRV8212] motor drivers, one for each motor. For more information on the motor control
+hardware, see the [motor control section](https://github.com/oddgrd/sumodd-hardware#motor-control)
+of the sumodd-hardware repository.
 
-We cannot power the motors directly from the MCU, as they will need higher voltages than the MCU
+The motors cannot be powered directly from the MCU, as they will need higher voltages than the MCU
 can supply, and significantly higher currents. The STM32F303K8T6 is rated for at most 25mA from
 any output pin, and 80mA total across all pins, whereas our motors at the time of writing have a
-an idle current of 50mA, and stall current of 0.8A. Furthermore, we are using brushed DC motors,
+an idle current of 120mA, and stall current of 3.2A. Furthermore, we are using brushed DC motors,
 so we also need to be able to reverse the supply polarity, to reverse the direction the motors
 spin. Therefore, we will use a MOSFET based H-bridge motor driver, which can control two motors.
 
-We landed on the [TB6612FNG][TB6612FNG] motor driver for the first iteration, the one used in the
-[nsumo project](https://github.com/artfulbytes/nsumo_video).
+In earlier iterations a dual-channel TB6612FNG driver was used, but to support higher currents,
+the current version uses two [DRV8212][DRV8212] motor drivers.
 
-- It takes motor power directly from our battery on the VM pin, and it can output up to 1.2A
-continuous current per motor output channel. It uses PWM to control the output voltage to the
-motors.
-- The motor driver does not have a clock, the MCU provides the PWM signal using a timer peripheral,
-and supplies it to the two motor driver PWM input pins, one for each motor, so their speed can be
-controlled separately.
-- For each motor, the driver has two additional input pins, used to control the direction of the
-motor. These open and close transistors in the H-bridge, which reverses the polarity of the voltage.
-This can be used to control the direction of the motors, clockwise or counter-clockwise.
+- It takes motor power directly from our battery on the VM pin, and it can output up to 4A
+continuous current per driver.
+- It uses a PWM signal from the MCU to control the output voltage to the motors, which allows us
+to control the speed of the motors by adjusting the duty cycle.
+- It uses a GPIO input to control polarity, if it is LOW the polarity is OUT2 -> OUT1, and if it
+is high it is the opposite, which results in clockwise or counterclockwise rotation, depending on
+how the motors are connected.
 
 ### Motor PWM
 
@@ -72,10 +72,7 @@ will see 3V.
 If we attach an oscilloscope to the PWM outputs from the MCU, we can verify it has the expected
 20kHz frequency, as well as the duty cycle we set with the CCR register.
 
-
-
-<details>
-<summary><strong>Oscilloscope captures of motor control PWM output pins</strong></summary>
+#### Oscilloscope captures of motor control PWM output pins
 
 First, lets look at both channels, symmetrically set to 25% duty cycle, meaning both motors are
 running at the same speed:
@@ -93,24 +90,4 @@ turn gradually towards the left.
 
 ![Oscilloscope motor PWM 25%/50% duty cycle asymmetric two channels](media/pwm-asymmetric-25-50.png)
 
-</details>
-
-## Risks
-
-- The TB6612FNG only supports up to 1.2A continuous current per motor. With our current motors, at
-their rated max of 6V, the stall current is 0.8A. However, they can be pushed up to 12V according
-to the manufacturer, which should increase the stall current to 1.6A, which is above above the
-drivers rating.
-    - We should consider switching to a larger dual channel motor driver, or use two larger single
-    channel motor drivers.
-    - The motor driver, this one or the new one, will produce significant heat at the high current
-    and voltage when stalling. When we overvoltage the motor up to 12V, the power consumption of
-    the motors actually quadruples, because both voltage and stall current are doubled:
-    `12V * 1.6A = 19.2W`, vs `6V * 0.8A = 4.8W`. We need to consider this in our PCB design, and
-    in our motor mount design.
-- We use a JST-PH 2-pin connector for our battery and motor output cables. These connectors are
-rated for 2A continuous current.
-    - We should switch to higher AWG wires, and use clamping power terminals rather than JST-PH
-    connectors.
-
-[TB6612FNG]: https://toshiba.semicon-storage.com/info/TB6612FNG_datasheet_en_20141001.pdf?did=10660&prodName=TB6612FNG
+[DRV8212]: https://www.ti.com/lit/ds/symlink/drv8212.pdf

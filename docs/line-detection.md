@@ -5,6 +5,9 @@
 - [STM32F303K8T6][mcu] MCU on-chip successive approximation register
 (SAR)[analog-to-digital converter][rm-0316] (ADC).
 
+More information about the line sensor hardware and its layout on the motherboard can be found in
+the [sumodd-hardware repository](https://github.com/oddgrd/sumodd-hardware#qre1113-analog-line-sensors).
+
 <details>
 <summary><strong>Sparkfun QRE1113 Analog Schematic</strong></summary>
 
@@ -13,7 +16,8 @@
 </details>
 
 For detecting the white line around the dohyo, we use four QRE1113 analog breakout boards. This
-board has the [QRE1113][qre1113] sensor, which consists of an IR emitter, as well as a phototransistor. On the board, the transistor collector is pulled high to VIN with a 10k resistor.
+board has the [QRE1113][qre1113] sensor, which consists of an IR emitter, as well as a
+phototransistor. On the board, the transistor collector is pulled high to VIN with a 10k resistor.
 See schematic in the dropdown above.
 
 The more IR light that hits the phototransistor base, the more current is pulled through the

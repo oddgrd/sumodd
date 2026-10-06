@@ -3,7 +3,9 @@
 ## Hardware
 
 - [VL53L4CD][VL53L4CD] Time-of-Flight ranging sensor x3 on custom, minimal PCBs. The KiCad files
-for these boards can be found in the [Auge repo](https://github.com/oddgrd/auge).
+for these boards, as well as further documentation for the hardware, can be found in the
+[Auge repo](https://github.com/oddgrd/auge), and the
+[sumodd-hardware repo](https://github.com/oddgrd/sumodd-hardware#vl53l4cd-time-of-flight-sensors).
 
 The VL53L4CD has a 940NM IR laser, and a single photon avalance diode (SPAD) array. It measures the
 time taken from emitting the laser, to receiving it in the SPAD array, the time of flight. The
