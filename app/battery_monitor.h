@@ -1,9 +1,16 @@
 #pragma once
 
+#include <stdbool.h>
+
 /**
- * @brief Read the latest battery monitor voltage measurement in mV.
+ * @brief Check whether the battery voltage is below the safe threshold.
  */
-uint32_t battery_monitor_get_voltage_mv();
+bool battery_monitor_check_low_voltage();
+
+/**
+ * @brief Shut down the motor, and indicate failure with LEDs in an infinite loop.
+ */
+void battery_monitor_low_voltage_shutdown(void);
 
 /**
  * @brief Initialize the battery monitor.

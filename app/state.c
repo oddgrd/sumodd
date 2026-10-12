@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "app_config.h"
+#include "battery_monitor.h"
 #include "debug.h"
 #include "drivers/line_sensor.h"
 #include "drivers/motor_driver.h"
@@ -142,6 +144,11 @@ static void process_event(StateEvent event)
  */
 static StateEvent process_input(void)
 {
+    if (battery_monitor_check_low_voltage())
+    {
+        battery_monitor_low_voltage_shutdown();
+    }
+
     IrCommand cmd = ir_remote_get_cmd();
     LineType line = get_line();
     // TODO: if data is ready this will do I2C reads which can take a few ms, we
@@ -177,8 +184,6 @@ static StateEvent process_input(void)
 
     if (enemy.bearing != BEARING_NONE)
     {
-        DEBUG_PRINTF("Enemy bearing: %d, distance: %dmm, state: %d\n", enemy.bearing,
-                     enemy.distance_mm, ctx.state);
         return EVT_ENEMY;
     }
 
