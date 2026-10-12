@@ -67,6 +67,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     app/ring_buffer.c
     app/ranging.c
     app/util.c
+    app/battery_monitor.c
     ${APP_SOURCE}
 )
 
