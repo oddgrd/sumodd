@@ -28,6 +28,10 @@ captures for illustration.
 - [Remote start IR signal handling](docs/ir-remote.md)
 - [Motor control](docs/motor-control.md)
 
+In addition to the above, we have a simple voltage divider battery voltage monitor, documented
+in the [hardware repo](https://github.com/oddgrd/sumodd-hardware#battery-monitor). It will stop the
+motors and indicate with a LED if the battery voltage is too low.
+
 ## Development
 
 This project uses [`mise`](https://mise.jdx.dev/) to manage tools and commands/tasks. If you'd
