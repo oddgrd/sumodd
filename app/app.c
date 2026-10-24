@@ -1,4 +1,5 @@
 #include "VL53L4CD_api.h"
+#include "battery_monitor.h"
 #include "debug.h"
 #include "drivers/ir_remote.h"
 #include "drivers/line_sensor.h"
@@ -10,6 +11,7 @@
 
 void app_init(void)
 {
+    battery_monitor_init();
     // Used by microsecond sleep utility, and for IR remote input capture.
     MX_TIM17_Init();
     if (HAL_TIM_Base_Start(&htim17) != HAL_OK)

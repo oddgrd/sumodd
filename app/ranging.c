@@ -1,21 +1,19 @@
 #include "ranging.h"
 
 #include "VL53L4CD_api.h"
+#include "app_config.h"
 #include "debug.h"
 #include "i2c.h"
 #include "main.h"
 
 // Default I2C address of the device, same for all sensors after reset.
 #define VL53L4CD_DEFAULT_ADDRESS 0x52
-// I2C address we set for each device during the initialization of the device.
+// I2C address we set for each device during device initialization.
 #define RANGING_ADDR_LEFT 0x30
 #define RANGING_ADDR_MIDDLE 0x32
 #define RANGING_ADDR_RIGHT 0x34
 
-// We set the range lower than the max size of the arena since it will rarely need it, and it makes
-// testing easier. The sensor can handle up to 1M well with the lowest timing budget, however,
-// depending on the amount of ambient light.
-#define RANGING_MAX_DISTANCE_MM 400U
+// Readings below this minimum will be considered invalid.
 #define RANGING_MIN_DISTANCE_MM 10U
 // Around 10ms is the lowest timing budget supported by the VL53L4CD, with some loss of accuracy,
 // whereas 30ms is the default. Since we are only measuring within a 77cm dohyo, we go for the
